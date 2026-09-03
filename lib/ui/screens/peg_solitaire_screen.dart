@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_pegsolitaire/core/enums/cell_type.dart';
 import 'package:flutter_pegsolitaire/main.dart';
+import 'package:flutter_pegsolitaire/models/game_record.dart';
 import 'package:flutter_pegsolitaire/ui/screens/rules_screen.dart';
 import 'package:flutter_pegsolitaire/ui/widgets/peg_cell.dart';
 import 'package:logger/logger.dart';
@@ -13,7 +14,15 @@ class PegSolitaireScreen extends StatelessWidget {
 
   Logger _logger = Logger();
 
-  
+  GameRecord _lastGameRecord = GameRecord(
+    id: '%FDFDFE#4434FDD#',
+    date: DateTime.now(),
+    remainingPegs: 33,
+    totalMoves: 0,
+    durationSeconds: 349,
+    isVictory: false,
+  );
+
 
   /// Determina el tipo de celda según sus coordenadas matriciales (row, col)
   CellType _getCellType(int row, int col) {
@@ -57,6 +66,9 @@ class PegSolitaireScreen extends StatelessWidget {
 
 @override
 Widget build(BuildContext context) {
+
+  _logger.i("Último registro de juego: $_lastGameRecord.remainingPegs piezas restantes ${_lastGameRecord.remainingPegs}, ${_lastGameRecord.durationSeconds} segundos jugados");
+
   return Scaffold(
     appBar: AppBar(title: const Text('Solitario'),
     actions: [
