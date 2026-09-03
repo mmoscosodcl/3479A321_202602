@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_pegsolitaire/ui/screens/peg_solitaire_screen.dart';
 import 'package:flutter_pegsolitaire/ui/theme/app_theme.dart';
-import 'package:logger/logger.dart';
+
 
 void main() {
   runApp(const MyApp());
