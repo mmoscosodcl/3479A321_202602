@@ -20,35 +20,64 @@ class PegCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.grey[400],
-        border: Border.all(color: Colors.grey[600]!, width: 1.5),
-      ),
-      child: Center(
-        child: cellType == CellType.occupiedPeg
-            ? Container(
-                width: 30,
-                height: 30,
-                decoration: const BoxDecoration(
-                  color: Colors.blue,
-                  shape: BoxShape.circle,
-                ),
-                child: isSelected
-                    ? const Icon(Icons.check, color: Color.fromARGB(255, 26, 18, 18), size: 20)
-                    : Image.asset('assets/icons/ghost.png'),
-              )
-            : cellType == CellType.emptyHole
-                ? Container(
-                    width: 30,
-                    height: 30,
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
+
+    if (cellType == CellType.voidCell) {
+      return const SizedBox.shrink();
+    }
+
+
+    final theme = Theme.of(context);
+
+    // 2. GestureDetector DEBE envolver el contenedor visible
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        decoration: BoxDecoration(
+          color: Colors.grey[400],
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: isSelected ? Colors.amberAccent : Colors.grey[600]!,
+            width: isSelected ? 3.0 : 1.5,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.amber.withValues(alpha: 0.6),
+                    blurRadius: 6,
+                    spreadRadius: 2,
                   )
-                : null, // No dibuja nada para voidCell
+                ]
+              : null,
+        ),
+        child: Center(
+          child: _buildPieceContent(theme),
+        ),
       ),
     );
+  }
+
+  Widget _buildPieceContent(ThemeData theme) {
+    if (cellType == CellType.occupiedPeg) {
+      return Container(
+        width: 26,
+        height: 26,
+        decoration: BoxDecoration(
+          color: theme.colorScheme.primary,
+          shape: BoxShape.circle,
+        ),
+      );
+    } else if (cellType == CellType.emptyHole) {
+      return Container(
+        width: 12,
+        height: 12,
+        decoration: BoxDecoration(
+          color: Colors.grey[800],
+          shape: BoxShape.circle,
+        ),
+      );
+    }
+    return const SizedBox.shrink();
   }
 }

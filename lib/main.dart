@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_pegsolitaire/ui/screens/history_screen.dart';
+import 'package:flutter_pegsolitaire/ui/screens/menu_screen.dart';
 import 'package:flutter_pegsolitaire/ui/screens/peg_solitaire_screen.dart';
+import 'package:flutter_pegsolitaire/ui/screens/rules_screen.dart';
 import 'package:flutter_pegsolitaire/ui/theme/app_theme.dart';
 
 
@@ -16,7 +19,13 @@ class MyApp extends StatelessWidget {
    return MaterialApp(
      title: 'Solitario Ingles',
      theme: AppTheme.lightTheme,
-     home:  PegSolitaireScreen(), // Apuntamos a nuestra nueva pantalla
+     initialRoute: '/',
+      routes: {
+        '/': (context) => const MenuScreen(),
+        '/game': (context) => PegSolitaireScreen(),
+        '/history': (context) => const HistoryScreen(),
+        '/rules': (context) => const RulesScreen(),
+      },
    );
  }
 }

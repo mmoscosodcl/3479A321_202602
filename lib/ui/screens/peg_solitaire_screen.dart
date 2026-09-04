@@ -1,16 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_pegsolitaire/core/enums/cell_type.dart';
-import 'package:flutter_pegsolitaire/main.dart';
 import 'package:flutter_pegsolitaire/models/game_record.dart';
 import 'package:flutter_pegsolitaire/ui/screens/rules_screen.dart';
 import 'package:flutter_pegsolitaire/ui/widgets/peg_cell.dart';
 import 'package:logger/logger.dart';
 
-class PegSolitaireScreen extends StatelessWidget {
+class PegSolitaireScreen extends StatefulWidget {
  PegSolitaireScreen({super.key});
 
   static const int gridSize = 7;
-  static const int totalCells = gridSize * gridSize; // 49 casillas
+  static const int totalCells = gridSize * gridSize; 
+  @override
+  State<PegSolitaireScreen> createState() => _PegSolitaireScreenState();
+}
+
+class _PegSolitaireScreenState extends State<PegSolitaireScreen> {
+ // 49 casillas
+  int rowSelected = 0;
+
+  int colSelected = 0;
 
   Logger _logger = Logger();
 
@@ -23,7 +31,6 @@ class PegSolitaireScreen extends StatelessWidget {
     isVictory: false,
   );
 
-
   /// Determina el tipo de celda según sus coordenadas matriciales (row, col)
   CellType _getCellType(int row, int col) {
     // Esquinas 2x2 no jugables en el tablero inglés estándar
@@ -35,6 +42,20 @@ class PegSolitaireScreen extends StatelessWidget {
     return CellType.occupiedPeg;
   }
 
+ void _handleCellTapped(int row, int col, CellType type) {
+  _logger.i('Celda tocada en: $row, $col | Tipo: $type');
+    if (type == CellType.voidCell) return;
+
+    setState(() {
+      if (rowSelected == row && colSelected == col) {
+        _logger.d('Deseleccionada celda en: ${rowSelected}, ${colSelected}');
+      } else {
+        rowSelected = row;
+        colSelected = col;
+        _logger.d('Seleccionada celda para acción: ${row}, ${col}  | Tipo: $type');
+      }
+    });
+  }
 
  Widget _gameBoard() {
    _logger.i("Construyendo el tablero de juego");
@@ -46,17 +67,26 @@ class PegSolitaireScreen extends StatelessWidget {
          child: GridView.builder(
            physics: const NeverScrollableScrollPhysics(), // Bloquea el scroll
            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-             crossAxisCount: gridSize, // 7 columnas
+             crossAxisCount: PegSolitaireScreen.gridSize, // 7 columnas
              crossAxisSpacing: 2.0,
              mainAxisSpacing: 2.0,
            ),
-           itemCount: totalCells, // 7x7 = 49 celdas
+           itemCount: PegSolitaireScreen.totalCells, // 7x7 = 49 celdas
            itemBuilder: (context, index) {
              // Convertir el índice en coordenadas matriciales
-             final int row = index ~/ gridSize;
-             final int col = index % gridSize;
-              final CellType cellType = _getCellType(row, col);
-             return PegCell(row: row, col: col, cellType: cellType);
+             final int row = index ~/ PegSolitaireScreen.gridSize;
+             final int col = index % PegSolitaireScreen.gridSize;
+             final CellType cellType = _getCellType(row, col);
+             // Evaluación booleana reactiva para la celda actual
+             final bool isSelected = (rowSelected == row && colSelected == col);
+             
+             return PegCell(
+                row: row,
+                col: col,
+                cellType: cellType,
+                isSelected: isSelected, // Pasa el estado reactivo
+                onTap: () => _handleCellTapped(row, col, cellType),
+              );
            },
          ),
        ),
@@ -108,5 +138,4 @@ Widget build(BuildContext context) {
      ),
    );
  }
-
 }
