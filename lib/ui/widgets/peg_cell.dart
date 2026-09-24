@@ -28,7 +28,6 @@ class PegCell extends StatelessWidget {
 
     final theme = Theme.of(context);
 
-    // 2. GestureDetector DEBE envolver el contenedor visible
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
