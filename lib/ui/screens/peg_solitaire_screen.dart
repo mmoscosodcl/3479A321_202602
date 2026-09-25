@@ -1,63 +1,63 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_pegsolitaire/core/enums/cell_type.dart';
-import 'package:flutter_pegsolitaire/models/game_record.dart';
 import 'package:flutter_pegsolitaire/ui/screens/rules_screen.dart';
 import 'package:flutter_pegsolitaire/ui/widgets/peg_cell.dart';
+import 'package:flutter_pegsolitaire/viewmodels/peg_solitaire_viewmodel.dart';
 import 'package:logger/logger.dart';
+import 'package:flutter_pegsolitaire/models/board_position.dart';
+import 'package:provider/provider.dart';
 
-class PegSolitaireScreen extends StatefulWidget {
- PegSolitaireScreen({super.key});
-
-  static const int gridSize = 7;
-  static const int totalCells = gridSize * gridSize; 
-  @override
-  State<PegSolitaireScreen> createState() => _PegSolitaireScreenState();
-}
-
-class _PegSolitaireScreenState extends State<PegSolitaireScreen> {
- // 49 casillas
-  int rowSelected = 0;
-
-  int colSelected = 0;
-
+class PegSolitaireScreen extends StatelessWidget {
+  PegSolitaireScreen({super.key});
   Logger _logger = Logger();
-
-  GameRecord _lastGameRecord = GameRecord(
-    id: '%FDFDFE#4434FDD#',
-    date: DateTime.now(),
-    remainingPegs: 33,
-    totalMoves: 0,
-    durationSeconds: 349,
-    isVictory: false,
-  );
-
-  /// Determina el tipo de celda según sus coordenadas matriciales (row, col)
-  CellType _getCellType(int row, int col) {
-    // Esquinas 2x2 no jugables en el tablero inglés estándar
-    final bool isCorner = (row < 2 || row > 4) && (col < 2 || col > 4);
-    if (isCorner) {
-      return CellType.voidCell;
-    }
-    // El resto de las 32 posiciones inician ocupadas
-    return CellType.occupiedPeg;
+  
+  Widget _buildScoreBoard(BuildContext context, PegSolitaireViewModel vm) {
+    return Container(
+      height: 65,
+      color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _buildMetric(context, 'Piezas', '${vm.remainingPegs}', Icons.circle),
+          _buildMetric(context, 'Movimientos', '${vm.moveCount}', Icons.swap_horiz_rounded),
+        ],
+      ),
+    );
   }
 
- void _handleCellTapped(int row, int col, CellType type) {
-  _logger.i('Celda tocada en: $row, $col | Tipo: $type');
-    if (type == CellType.voidCell) return;
-
-    setState(() {
-      if (rowSelected == row && colSelected == col) {
-        _logger.d('Deseleccionada celda en: ${rowSelected}, ${colSelected}');
-      } else {
-        rowSelected = row;
-        colSelected = col;
-        _logger.d('Seleccionada celda para acción: ${row}, ${col}  | Tipo: $type');
-      }
-    });
+  Widget _buildMetric(BuildContext context, String label, String value, IconData icon) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 14, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(width: 4),
+            Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+      ],
+    );
   }
 
- Widget _gameBoard() {
+
+  Widget _buildGameOverBanner(BuildContext context, PegSolitaireViewModel vm) {
+    return Container(
+      width: double.infinity,
+      color: vm.isVictory ? Colors.green[800] : Colors.red[900],
+      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+      child: Text(
+        vm.isVictory
+            ? '¡VICTORIA PERFECTA! Has dejado exactamente una clavija.'
+            : 'JUEGO TERMINADO: No quedan movimientos válidos disponibles.',
+        textAlign: TextAlign.center,
+        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+
+ Widget _gameBoard(BuildContext context, PegSolitaireViewModel vm) {
    _logger.i("Construyendo el tablero de juego");
    return Center(
      child: Padding(
@@ -67,25 +67,24 @@ class _PegSolitaireScreenState extends State<PegSolitaireScreen> {
          child: GridView.builder(
            physics: const NeverScrollableScrollPhysics(), // Bloquea el scroll
            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-             crossAxisCount: PegSolitaireScreen.gridSize, // 7 columnas
+             crossAxisCount: PegSolitaireViewModel.gridSize, // 7 columnas
              crossAxisSpacing: 2.0,
              mainAxisSpacing: 2.0,
            ),
-           itemCount: PegSolitaireScreen.totalCells, // 7x7 = 49 celdas
+           itemCount: PegSolitaireViewModel.gridSize * PegSolitaireViewModel.gridSize, // 7x7 = 49 celdas
            itemBuilder: (context, index) {
              // Convertir el índice en coordenadas matriciales
-             final int row = index ~/ PegSolitaireScreen.gridSize;
-             final int col = index % PegSolitaireScreen.gridSize;
-             final CellType cellType = _getCellType(row, col);
-             // Evaluación booleana reactiva para la celda actual
-             final bool isSelected = (rowSelected == row && colSelected == col);
+             final int row = index ~/ PegSolitaireViewModel.gridSize;
+             final int col = index % PegSolitaireViewModel.gridSize;
+             final position = BoardPosition(row,col);
+             final CellType cellType = vm.getCellType(row, col);
+
              
              return PegCell(
-                row: row,
-                col: col,
+                position: position,
                 cellType: cellType,
-                isSelected: isSelected, // Pasa el estado reactivo
-                onTap: () => _handleCellTapped(row, col, cellType),
+                isSelected: vm.isCellSelected(position), // Pasa el estado reactivo
+                onTap: () => context.read<PegSolitaireViewModel>().onCellTapped(position),
               );
            },
          ),
@@ -96,10 +95,9 @@ class _PegSolitaireScreenState extends State<PegSolitaireScreen> {
 
 @override
 Widget build(BuildContext context) {
+    final vm = context.watch<PegSolitaireViewModel>();
 
-  _logger.i("Último registro de juego: $_lastGameRecord.remainingPegs piezas restantes ${_lastGameRecord.remainingPegs}, ${_lastGameRecord.durationSeconds} segundos jugados");
-
-  return Scaffold(
+    return Scaffold(
     appBar: AppBar(title: const Text('Solitario'),
     actions: [
           IconButton(
@@ -113,26 +111,24 @@ Widget build(BuildContext context) {
               );
             },
           ),
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded),
+            tooltip: 'Reiniciar Tablero',
+            onPressed: () => context.read<PegSolitaireViewModel>().initializeBoard(),
+          ),
         ],),
     
     body: SafeArea( // Protege la UI de los bordes del dispositivo
        child: Column( // Apila el marcador arriba y el tablero abajo
          children: [
            // Área de Status
-           Container(
-             height: 60,
-             color: Colors.grey[300],
-             child: const Center(
-               child: Text('STATUS: 349 segundos | Piezas restantes: 33',
-                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-               ),
-             ),
-           ),
+           _buildScoreBoard(context, vm),
            const Divider(height: 1),
            // Área de Juego
            Expanded( // Expande el tablero para llenar la pantalla
-             child: _gameBoard(),
+             child: _gameBoard(context,vm), // Construye el tablero de juego
            ),
+           if (vm.isGameOver) _buildGameOverBanner(context, vm),
          ],
        ),
      ),

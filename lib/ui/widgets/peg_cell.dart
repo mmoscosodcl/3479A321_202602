@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_pegsolitaire/core/enums/cell_type.dart';
+import 'package:flutter_pegsolitaire/models/board_position.dart';
 
 
 class PegCell extends StatelessWidget {
-  final int row;
-  final int col;
+  final BoardPosition position;
   final CellType cellType;
   final bool isSelected;
   final VoidCallback? onTap;
 
   const PegCell({
     super.key,
-    required this.row,
-    required this.col,
+    required this.position,
     required this.cellType,
     this.isSelected = false,
     this.onTap,
