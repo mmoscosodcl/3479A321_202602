@@ -1,6 +1,7 @@
 // lib/viewmodels/peg_solitaire_viewmodel.dart
 import 'package:flutter/foundation.dart';
 import 'package:flutter_pegsolitaire/models/board_position.dart';
+import 'package:flutter_pegsolitaire/services/audio_service.dart';
 import 'package:logger/logger.dart';
 import '../core/enums/cell_type.dart';
 
@@ -91,6 +92,7 @@ class PegSolitaireViewModel extends ChangeNotifier {
 
     // ESTADO 1: SOURCE_SELECTED (Existe una clavija origen activa)
     final BoardPosition origin = _selectedPosition!;
+    AudioService.instance.playSelect(); // Reproducción de sonido de selección
 
     // Transición 1.1: Pulsar sobre la misma casilla -> Deselección (Toggle)
     if (origin == pos) {
@@ -143,6 +145,8 @@ class PegSolitaireViewModel extends ChangeNotifier {
 
   /// Ejecuta la mutación atómica del tablero matricial y actualiza métricas.
   void _executeMove(BoardPosition from, BoardPosition to) {
+    AudioService.instance.playJump(); // Reproducción de sonido de salto
+
     final int midRow = (from.row + to.row) ~/ 2;
     final int midCol = (from.col + to.col) ~/ 2;
 
@@ -162,7 +166,9 @@ class PegSolitaireViewModel extends ChangeNotifier {
     if (_remainingPegs == 1) {
       _isGameOver = true;
       _isVictory = true;
+      AudioService.instance.playGameOver(); // Reproducción de sonido de game over
       logger.i('¡VICTORIA! Partida completada en $_moveCount movimientos.');
+
       return;
     }
 
@@ -170,6 +176,7 @@ class PegSolitaireViewModel extends ChangeNotifier {
     if (!_hasValidMovesRemaining()) {
       _isGameOver = true;
       _isVictory = false;
+      AudioService.instance.playGameOver(); // Reproducción de sonido de game over
       logger.w('STALEMATE: Fin de juego por bloqueo. No existen movimientos válidos.');
     }
   }

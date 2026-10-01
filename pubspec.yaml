@@ -25,6 +25,8 @@ dependencies:
   cupertino_icons: ^1.0.8
   logger: ^2.7.0
   provider: ^6.1.5+1
+  audioplayers: ^6.8.1
+  sensors_plus: ^7.1.1
 
 dev_dependencies:
   flutter_test:
@@ -52,6 +54,9 @@ flutter:
   assets:
     - assets/images/backgroud.png
     - assets/icons/ghost.png
+    - assets/audios/defeat.mp3
+    - assets/audios/jump.mp3
+    - assets/audios/selection.mp3
   fonts:
     - family: TacoCrispy
       fonts:

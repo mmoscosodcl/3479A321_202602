@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_pegsolitaire/core/enums/cell_type.dart';
+import 'package:flutter_pegsolitaire/services/shake_detector_service.dart';
 import 'package:flutter_pegsolitaire/ui/screens/rules_screen.dart';
 import 'package:flutter_pegsolitaire/ui/widgets/peg_cell.dart';
 import 'package:flutter_pegsolitaire/viewmodels/peg_solitaire_viewmodel.dart';
@@ -11,6 +12,14 @@ class PegSolitaireScreen extends StatelessWidget {
   PegSolitaireScreen({super.key});
   Logger _logger = Logger();
   
+  ShakeDetectorService shakeDetectorService = ShakeDetectorService(
+    onShake: () {
+      // Acción a realizar cuando se detecta un shake
+      print('¡Shake detectado!'); // Aquí puedes reemplazar con la acción deseada
+    },
+  );
+
+
   Widget _buildScoreBoard(BuildContext context, PegSolitaireViewModel vm) {
     return Container(
       height: 65,

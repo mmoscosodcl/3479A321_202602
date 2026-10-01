@@ -1,8 +1,10 @@
 // lib/ui/screens/menu_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_pegsolitaire/services/shake_detector_service.dart';
 
 class MenuScreen extends StatelessWidget {
   const MenuScreen({super.key});
+
 
   @override
   Widget build(BuildContext context) {
