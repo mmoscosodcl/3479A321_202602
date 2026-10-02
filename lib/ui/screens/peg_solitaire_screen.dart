@@ -7,19 +7,54 @@ import 'package:flutter_pegsolitaire/viewmodels/peg_solitaire_viewmodel.dart';
 import 'package:logger/logger.dart';
 import 'package:flutter_pegsolitaire/models/board_position.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 
-class PegSolitaireScreen extends StatelessWidget {
-  PegSolitaireScreen({super.key});
-  Logger _logger = Logger();
+class PegSolitaireScreen extends StatefulWidget {
+  const PegSolitaireScreen({super.key});
+
+  @override
+  State<PegSolitaireScreen> createState() => _PegSolitaireScreenState();
+}
+
+class _PegSolitaireScreenState extends State<PegSolitaireScreen> {
+  final Logger _logger = Logger();
+  ShakeDetectorService? _shakeDetector;
+
+  @override
+  void initState() {
+    super.initState();
+    // Inicialización del detector de agitación
+    _shakeDetector = ShakeDetectorService(
+      onShake: _handleShakeEvent,
+    );
+    _shakeDetector?.startListening();
+  }
+
+  void _handleShakeEvent() {
+    final vm = context.read<PegSolitaireViewModel>();
+
+    // REGLA DE NEGOCIO: Solo actuar si la partida ha terminado
+    if (vm.isGameOver) {
+      _logger.i('Shake validado: Partida finalizada. Reiniciando tablero automáticamente.');
+      vm.initializeBoard();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('¡Tablero reiniciado por movimiento físico!'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } else {
+      _logger.d('Shake ignorado: La partida se encuentra activa.');
+    }
+  }
+
+  @override
+  void dispose() {
+    // Liberación estricta para evitar fugas de memoria al salir de la pantalla
+    _shakeDetector?.dispose();
+    super.dispose();
+  }
   
-  ShakeDetectorService shakeDetectorService = ShakeDetectorService(
-    onShake: () {
-      // Acción a realizar cuando se detecta un shake
-      print('¡Shake detectado!'); // Aquí puedes reemplazar con la acción deseada
-    },
-  );
-
-
   Widget _buildScoreBoard(BuildContext context, PegSolitaireViewModel vm) {
     return Container(
       height: 65,
@@ -50,18 +85,37 @@ class PegSolitaireScreen extends StatelessWidget {
     );
   }
 
-
   Widget _buildGameOverBanner(BuildContext context, PegSolitaireViewModel vm) {
     return Container(
       width: double.infinity,
       color: vm.isVictory ? Colors.green[800] : Colors.red[900],
       padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-      child: Text(
-        vm.isVictory
-            ? '¡VICTORIA PERFECTA! Has dejado exactamente una clavija.'
-            : 'JUEGO TERMINADO: No quedan movimientos válidos disponibles.',
-        textAlign: TextAlign.center,
-        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              vm.isVictory
+                  ? '¡VICTORIA PERFECTA! Has dejado exactamente una clavija.'
+                  : 'JUEGO TERMINADO: No quedan movimientos válidos disponibles.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+          ),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.black87),
+            icon: const Icon(Icons.share_rounded, size: 18),
+            label: const Text('Compartir'),
+            onPressed: () async {
+              final String message = '¡He completado una partida de Peg Solitaire en ${vm.moveCount} movimientos dejando solo ${vm.remainingPegs} piezas!';
+              await SharePlus.instance.share(
+              ShareParams(
+                text: message,
+                ),
+              );
+
+            },
+          ),
+        ],
       ),
     );
   }

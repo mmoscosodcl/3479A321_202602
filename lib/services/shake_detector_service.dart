@@ -1,4 +1,3 @@
-// lib/services/shake_detector_service.dart
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/widgets.dart';
@@ -17,9 +16,24 @@ class ShakeDetectorService {
   DateTime _lastShakeTime = DateTime.now();
   bool _isListening = false;
 
+  /// Creates a new instance of [ShakeDetectorService].
+  ///
+  /// The [onShake] callback is required and will be invoked when a shake gesture
+  /// is detected based on the configured [shakeThreshold].
+  ///
+  /// Parameters:
+  ///   * [onShake] - Required callback function that is triggered when a shake
+  ///     event occurs.
+  ///   * [shakeThreshold] - The acceleration threshold in m/s² that triggers a
+  ///     shake event. Defaults to 3 m/s².
+  ///   * [debounceDuration] - The minimum time interval between consecutive shake
+  ///     detections to prevent multiple triggers. Defaults to 1200 milliseconds.
+  ///
+  /// Upon initialization, the lifecycle listener is automatically set up to manage
+  /// the service's lifecycle events.
   ShakeDetectorService({
     required this.onShake,
-    this.shakeThreshold = 25.0, // Umbral en m/s²
+    this.shakeThreshold = 3, // Umbral en m/s²
     this.debounceDuration = const Duration(milliseconds: 1200),
   }) {
     _initLifecycleListener();
@@ -50,7 +64,7 @@ class ShakeDetectorService {
         final double magnitude = sqrt(
           event.x * event.x + event.y * event.y + event.z * event.z,
         );
-
+        _logger.i('magnitude ${magnitude} shakeThreshold ${shakeThreshold}> ');
         if (magnitude > shakeThreshold) {
           final now = DateTime.now();
           if (now.difference(_lastShakeTime) > debounceDuration) {
