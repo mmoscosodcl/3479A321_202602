@@ -10,14 +10,14 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 class PegSolitaireScreen extends StatefulWidget {
-  PegSolitaireScreen({super.key});
+  const PegSolitaireScreen({super.key});
 
   @override
   State<PegSolitaireScreen> createState() => _PegSolitaireScreenState();
 }
 
 class _PegSolitaireScreenState extends State<PegSolitaireScreen> {
-  Logger _logger = Logger();
+  final Logger _logger = Logger();
   ShakeDetectorService? _shakeDetector;
 
   @override
@@ -54,7 +54,7 @@ class _PegSolitaireScreenState extends State<PegSolitaireScreen> {
     _shakeDetector?.dispose();
     super.dispose();
   }
-
+  
   Widget _buildScoreBoard(BuildContext context, PegSolitaireViewModel vm) {
     return Container(
       height: 65,

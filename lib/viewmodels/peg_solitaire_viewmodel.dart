@@ -2,6 +2,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_pegsolitaire/models/board_position.dart';
 import 'package:flutter_pegsolitaire/services/audio_service.dart';
+import 'package:flutter_pegsolitaire/services/shake_detector_service.dart';
 import 'package:logger/logger.dart';
 import '../core/enums/cell_type.dart';
 
@@ -19,6 +20,29 @@ class PegSolitaireViewModel extends ChangeNotifier {
   bool _isGameOver = false;
   bool _isVictory = false;
 
+  //Pruebas
+  ShakeDetectorService? _shakeDetector;
+  
+  //
+  void _initShakeTest() {
+    _shakeDetector = ShakeDetectorService(
+      shakeThreshold: 3,
+      onShake: () {
+        // Callback directo de prueba
+        logger.i("Shake detectado");
+      },
+    );
+    _shakeDetector?.startListening();
+  }
+
+
+
+  @override
+  void dispose() {
+    _shakeDetector?.dispose(); // 4. Evitar fugas de memoria al salir
+    super.dispose();
+  }
+
   // Getters inmutables expuestos hacia la UI
   List<List<CellType>> get board => _board;
   BoardPosition? get selectedPosition => _selectedPosition;
@@ -29,6 +53,7 @@ class PegSolitaireViewModel extends ChangeNotifier {
 
   PegSolitaireViewModel() {
     initializeBoard();
+    _initShakeTest();
   }
 
   /// Inicializa el Tablero Inglés Estándar (33 casillas, centro desocupado).

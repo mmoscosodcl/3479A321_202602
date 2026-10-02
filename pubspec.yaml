@@ -4,6 +4,8 @@ description: "A new Flutter project."
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
+flutter_launcher_name:
+  name: "yourNewAppLauncherName"
 
 version: 1.0.0+1
 
@@ -64,11 +66,8 @@ flutter:
       fonts:
         - asset: assets/fonts/TacoCrispy.ttf
 
-# pubspec.yaml
 flutter_launcher_icons:
   android: "launcher_icon"
-  ios: false 
+  ios: false
   image_path: "assets/icons/icon.png"
   min_sdk_android: 21
-
-
