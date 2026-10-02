@@ -19,7 +19,6 @@ class MenuScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Spacer(),
-              Icon(Icons.grid_4x4_rounded, size: 72, color: theme.colorScheme.primary),
               const SizedBox(height: 16),
               Text(
                 'PEG SOLITAIRE',
