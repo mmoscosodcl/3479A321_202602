@@ -38,6 +38,7 @@ class AudioService {
     if (!_isInitialized) return;
     try {
       await _player.play(AssetSource('audios/jump.mp3'));
+      _logger.i('Reproduciendo jump.mp3 con éxito');
     } catch (e) {
       _logger.w('No se pudo reproducir jump.mp3: $e');
     }

@@ -1,11 +1,9 @@
-// lib/services/shake_detector_service.dart
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/widgets.dart';
 import 'package:logger/logger.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 
-/// Servicio desacoplado para detectar agitación física con gestión de ciclo de vida del SO.
 class ShakeDetectorService {
   final double shakeThreshold;
   final VoidCallback onShake;
@@ -19,7 +17,7 @@ class ShakeDetectorService {
 
   ShakeDetectorService({
     required this.onShake,
-    this.shakeThreshold = 25.0, // Umbral en m/s²
+    this.shakeThreshold = 10.0, // Valor por defecto en m/s²
     this.debounceDuration = const Duration(milliseconds: 1200),
   }) {
     _initLifecycleListener();
@@ -46,7 +44,7 @@ class ShakeDetectorService {
 
     _subscription = userAccelerometerEventStream().listen(
       (UserAccelerometerEvent event) {
-        // Cálculo de la norma euclidiana del vector
+        
         final double magnitude = sqrt(
           event.x * event.x + event.y * event.y + event.z * event.z,
         );
