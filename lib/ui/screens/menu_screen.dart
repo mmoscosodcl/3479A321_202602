@@ -1,4 +1,3 @@
-// lib/ui/screens/menu_screen.dart
 import 'package:flutter/material.dart';
 
 class MenuScreen extends StatelessWidget {
@@ -8,7 +7,6 @@ class MenuScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
     return Scaffold(
       body: SafeArea(
         child: Padding(

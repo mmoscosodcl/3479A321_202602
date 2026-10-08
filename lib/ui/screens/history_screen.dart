@@ -1,53 +1,48 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_pegsolitaire/repositories/game_history_repository.dart';
+import 'package:flutter_pegsolitaire/repositories/json_file_history_repository.dart';
 import '../../models/game_record.dart';
 
-class HistoryScreen extends StatelessWidget {
+class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
 
-  List<GameRecord> _getMockRecords() {
-    return [
-      GameRecord(
-        id: 'REC-101',
-        date: DateTime.now().subtract(const Duration(hours: 1)),
-        remainingPegs: 1,
-        totalMoves: 31,
-        durationSeconds: 145,
-        isVictory: true,
-      ),
-      GameRecord(
-        id: 'REC-102',
-        date: DateTime.now().subtract(const Duration(days: 1)),
-        remainingPegs: 3,
-        totalMoves: 29,
-        durationSeconds: 215,
-        isVictory: false,
-      ),
-      GameRecord(
-        id: 'REC-103',
-        date: DateTime.now().subtract(const Duration(days: 2)),
-        remainingPegs: 1,
-        totalMoves: 31,
-        durationSeconds: 118,
-        isVictory: true,
-      ),
-    ];
+  @override
+  State<HistoryScreen> createState() => _HistoryScreenState();
+}
+
+class _HistoryScreenState extends State<HistoryScreen> {
+
+  final IGameHistoryRepository _repository = JsonFileHistoryRepository();
+  late Future<List<GameRecord>> _historyFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHistory();
   }
 
-  String _formatDate(DateTime date) {
+  void _loadHistory() {
+    setState(() {
+      _historyFuture = _repository.getHistory();
+    });
+  }
+  
+
+  String formatDate(DateTime date) {
   final day = date.day.toString().padLeft(2, '0');
   final month = _monthName(date.month);
 
   return '$day $month ${date.year}';
 }
 
-String _formatTime(DateTime date) {
+String formatTime(DateTime date) {
   final hour = date.hour.toString().padLeft(2, '0');
   final minute = date.minute.toString().padLeft(2, '0');
 
   return '$hour:$minute';
 }
 
-String _formatDuration(int seconds) {
+String formatDuration(int seconds) {
   if (seconds < 60) {
     return '$seconds s';
   }
@@ -80,65 +75,75 @@ String _monthName(int month) {
 
   @override
   Widget build(BuildContext context) {
-    final records = _getMockRecords();
-    final theme = Theme.of(context);
-
+    
     return Scaffold(
       appBar: AppBar(title: const Text('Historial de Partidas')),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16.0),
-        itemCount: records.length,
-        itemBuilder: (context, index) {
-          final record = records[index];
-          final colorScheme = Theme.of(context).colorScheme;
+      body: FutureBuilder<List<GameRecord>>(
+        future: _historyFuture,
+        builder: (context, asyncSnapshot) {
+          if (asyncSnapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-          final statusColor = record.isVictory
-              ? colorScheme.primary
-              : colorScheme.error;
+          if (asyncSnapshot.hasError) {
+            return Center(child: Text('Error: ${asyncSnapshot.error}'));
+          }
 
-          return Card(
-            margin: const EdgeInsets.only(bottom: 12.0),
-            child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16.0,
-                vertical: 8.0,
-              ),
-              leading: Icon(
-                record.isVictory
-                    ? Icons.check_circle
-                    : Icons.cancel,
-                color: statusColor,
-                size: 32,
-              ),
-              title: Row(
-                children: [
-                  Text(
-                    record.isVictory ? 'Victoria' : 'Derrota',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: statusColor,
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    '${_formatDate(record.date)} · ${_formatTime(record.date)}',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
-              subtitle: Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Text(
-                  '${record.totalMoves} movimientos · '
-                  '${record.remainingPegs} fichas restantes · '
-                  '${_formatDuration(record.durationSeconds)}',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              ),
-            ),
+          final records = asyncSnapshot.data ?? [];
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16.0),
+            itemCount: records.length,
+            itemBuilder: (context, index) {
+              final record = records[index];          
+              return _buildRecordCard(context, record);
+            },
           );
-        },
+        }
       ),
     );
   }
 }
+
+Widget _buildRecordCard(BuildContext context, GameRecord record) {
+    final theme = Theme.of(context);
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12.0),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16.0,
+          vertical: 8.0,
+        ),
+        leading: Icon(
+          record.isVictory
+              ? Icons.check_circle
+              : Icons.cancel,
+          color: theme.colorScheme.primary,
+          size: 32,
+        ),
+        title: Row(
+          children: [
+            Text(
+              record.isVictory ? 'Victoria' : 'Derrota',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Colors.amber,
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            const Spacer(),
+            Text(
+              '${record.date}',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 8.0),
+          child: Text(
+            '${record.durationSeconds} · Movimientos: ${record.totalMoves} · Clavijas restantes: ${record.remainingPegs}',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+        ),
+      ),
+    );
+  }

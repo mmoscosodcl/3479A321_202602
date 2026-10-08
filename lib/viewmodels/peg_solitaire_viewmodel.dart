@@ -1,7 +1,11 @@
 // lib/viewmodels/peg_solitaire_viewmodel.dart
 import 'package:flutter/foundation.dart';
 import 'package:flutter_pegsolitaire/models/board_position.dart';
+import 'package:flutter_pegsolitaire/models/game_record.dart';
+import 'package:flutter_pegsolitaire/models/move_record.dart';
+import 'package:flutter_pegsolitaire/repositories/game_history_repository.dart';
 import 'package:flutter_pegsolitaire/services/audio_service.dart';
+import 'package:flutter_pegsolitaire/services/preferences_service.dart';
 import 'package:flutter_pegsolitaire/services/shake_detector_service.dart';
 import 'package:logger/logger.dart';
 import '../core/enums/cell_type.dart';
@@ -10,7 +14,13 @@ import '../core/enums/cell_type.dart';
 /// ViewModel que encapsula las reglas de negocio, la FSM y el estado del Peg Solitaire.
 class PegSolitaireViewModel extends ChangeNotifier {
   static const int gridSize = 7;
-  Logger logger = Logger();
+  final Logger _logger = Logger();
+
+  //
+  final IGameHistoryRepository? _historyRepository;
+  final PreferencesService? _preferencesService;
+  final List<MoveRecord> _movesHistory = [];
+
 
   // Estado interno matricial y contadores
   late List<List<CellType>> _board;
@@ -23,18 +33,7 @@ class PegSolitaireViewModel extends ChangeNotifier {
   //Pruebas
   ShakeDetectorService? _shakeDetector;
   
-  //
-  void _initShakeTest() {
-    _shakeDetector = ShakeDetectorService(
-      shakeThreshold: 3,
-      onShake: () {
-        // Callback directo de prueba
-        logger.i("Shake detectado");
-      },
-    );
-    _shakeDetector?.startListening();
-  }
-
+  
 
 
   @override
@@ -51,9 +50,11 @@ class PegSolitaireViewModel extends ChangeNotifier {
   bool get isGameOver => _isGameOver;
   bool get isVictory => _isVictory;
 
-  PegSolitaireViewModel() {
+  PegSolitaireViewModel({
+    required IGameHistoryRepository this._historyRepository,
+    required PreferencesService this._preferencesService,
+  }) {
     initializeBoard();
-    _initShakeTest();
   }
 
   /// Inicializa el Tablero Inglés Estándar (33 casillas, centro desocupado).
@@ -141,7 +142,7 @@ class PegSolitaireViewModel extends ChangeNotifier {
         _evaluateGameTermination();
         notifyListeners();
       } else {
-        logger.w('Reglas: Intento de salto inválido rechazado desde $origin hacia $pos');
+        _logger.w('Reglas: Intento de salto inválido rechazado desde $origin hacia $pos');
       }
     }
   }
@@ -182,8 +183,34 @@ class PegSolitaireViewModel extends ChangeNotifier {
     _remainingPegs--;
     _moveCount++;
 
-    logger.i('Salto ejecutado con éxito: $from -> $to | Clavijas restantes: $_remainingPegs');
+    _logger.i('Salto ejecutado con éxito: $from -> $to | Clavijas restantes: $_remainingPegs');
+    _movesHistory.add(MoveRecord(
+      from: from,
+      to: to,
+      timestamp: DateTime.now(),
+    ));
+
   }
+
+  Future<void> _persistCompletedGame() async {
+    final record = GameRecord(
+      id: 'REC-${DateTime.now().millisecondsSinceEpoch}',
+      date: DateTime.now(),
+      remainingPegs: _remainingPegs,
+      totalMoves: _moveCount,
+      durationSeconds: 0, // Se integrará con el cronómetro de sesión
+      isVictory: _isVictory,
+      moves: List.unmodifiable(_movesHistory),
+    );
+
+    try {
+      await _historyRepository?.saveGame(record);
+      await _preferencesService?.checkAndSaveRecord(_remainingPegs);
+    } catch (e) {
+      _logger.e('Error al guardar resumen en ViewModel: $e');
+    }
+  }
+
 
   /// Evalúa las condiciones de término de la partida (Victoria o Stalemate).
   void _evaluateGameTermination() {
@@ -192,7 +219,7 @@ class PegSolitaireViewModel extends ChangeNotifier {
       _isGameOver = true;
       _isVictory = true;
       AudioService.instance.playGameOver(); // Reproducción de sonido de game over
-      logger.i('¡VICTORIA! Partida completada en $_moveCount movimientos.');
+      _logger.i('¡VICTORIA! Partida completada en $_moveCount movimientos.');
 
       return;
     }
@@ -202,7 +229,11 @@ class PegSolitaireViewModel extends ChangeNotifier {
       _isGameOver = true;
       _isVictory = false;
       AudioService.instance.playGameOver(); // Reproducción de sonido de game over
-      logger.w('STALEMATE: Fin de juego por bloqueo. No existen movimientos válidos.');
+      _logger.w('STALEMATE: Fin de juego por bloqueo. No existen movimientos válidos.');
+    }
+
+    if (_isGameOver == true) {
+      _persistCompletedGame();
     }
   }
 
