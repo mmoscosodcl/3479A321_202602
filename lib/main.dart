@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_pegsolitaire/repositories/game_history_repository.dart';
 import 'package:flutter_pegsolitaire/repositories/json_file_history_repository.dart';
+import 'package:flutter_pegsolitaire/services/audio_service.dart';
 import 'package:flutter_pegsolitaire/services/preferences_service.dart';
 import 'package:flutter_pegsolitaire/ui/screens/history_screen.dart';
 import 'package:flutter_pegsolitaire/ui/screens/menu_screen.dart';
@@ -18,6 +19,7 @@ Future<void> main() async {
   // 2. Resolver dependencias de infraestructura de forma asíncrona
   final preferencesService = await PreferencesService.create();
   final historyRepository = JsonFileHistoryRepository();
+  final audioService = AudioService.instance; // Inicialización del servicio de audio
 
 
 // 3. Inyectar dependencias en la raíz del árbol
@@ -27,6 +29,7 @@ Future<void> main() async {
         // Inyección por interfaz abstracta (DIP)
         Provider<IGameHistoryRepository>.value(value: historyRepository),
         Provider<PreferencesService>.value(value: preferencesService),
+        Provider<AudioService>.value(value: audioService),
       ],
       child: const MyApp(),
     ),
@@ -47,7 +50,7 @@ class MyApp extends StatelessWidget {
         '/game': (context) => ChangeNotifierProvider(
               create: (routeContext) => PegSolitaireViewModel(
                 historyRepository: routeContext.read<IGameHistoryRepository>(),
-                preferencesService: routeContext.read<PreferencesService>(),
+                preferencesService: routeContext.read<PreferencesService>(), audioService: routeContext.read<AudioService>(),
               ),
               child: PegSolitaireScreen(),
             ),

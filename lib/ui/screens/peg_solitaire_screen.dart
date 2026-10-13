@@ -143,7 +143,7 @@ class _PegSolitaireScreenState extends State<PegSolitaireScreen> {
              final int row = index ~/ PegSolitaireViewModel.gridSize;
              final int col = index % PegSolitaireViewModel.gridSize;
              final position = BoardPosition(row,col);
-             final CellType cellType = vm.getCellType(row, col);
+             final CellType cellType = vm.getCellType(position);
 
              
              return PegCell(

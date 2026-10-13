@@ -19,6 +19,7 @@ class PegSolitaireViewModel extends ChangeNotifier {
   //
   final IGameHistoryRepository? _historyRepository;
   final PreferencesService? _preferencesService;
+  final AudioService? _audioService;
   final List<MoveRecord> _movesHistory = [];
 
 
@@ -53,6 +54,7 @@ class PegSolitaireViewModel extends ChangeNotifier {
   PegSolitaireViewModel({
     required IGameHistoryRepository this._historyRepository,
     required PreferencesService this._preferencesService,
+    required AudioService this._audioService,
   }) {
     initializeBoard();
   }
@@ -83,11 +85,11 @@ class PegSolitaireViewModel extends ChangeNotifier {
   }
 
   /// Retorna el tipo de celda en una coordenada cartesiana segura.
-  CellType getCellType(int row, int col) {
-    if (row < 0 || row >= gridSize || col < 0 || col >= gridSize) {
+  CellType getCellType(BoardPosition pos) {
+    if (pos.row < 0 || pos.row >= gridSize || pos.col < 0 || pos.col >= gridSize) {
       return CellType.voidCell;
     }
-    return _board[row][col];
+    return _board[pos.row][pos.col];
   }
 
   bool isCellSelected(BoardPosition pos) {
@@ -118,7 +120,7 @@ class PegSolitaireViewModel extends ChangeNotifier {
 
     // ESTADO 1: SOURCE_SELECTED (Existe una clavija origen activa)
     final BoardPosition origin = _selectedPosition!;
-    AudioService.instance.playSelect(); // Reproducción de sonido de selección
+    _audioService?.playSelect(); // Reproducción de sonido de selección
 
     // Transición 1.1: Pulsar sobre la misma casilla -> Deselección (Toggle)
     if (origin == pos) {
@@ -171,7 +173,7 @@ class PegSolitaireViewModel extends ChangeNotifier {
 
   /// Ejecuta la mutación atómica del tablero matricial y actualiza métricas.
   void _executeMove(BoardPosition from, BoardPosition to) {
-    AudioService.instance.playJump(); // Reproducción de sonido de salto
+    _audioService?.playJump(); // Reproducción de sonido de salto
 
     final int midRow = (from.row + to.row) ~/ 2;
     final int midCol = (from.col + to.col) ~/ 2;
@@ -218,7 +220,7 @@ class PegSolitaireViewModel extends ChangeNotifier {
     if (_remainingPegs == 1) {
       _isGameOver = true;
       _isVictory = true;
-      AudioService.instance.playGameOver(); // Reproducción de sonido de game over
+      _audioService?.playGameOver(); // Reproducción de sonido de game over
       _logger.i('¡VICTORIA! Partida completada en $_moveCount movimientos.');
 
       return;
@@ -228,7 +230,7 @@ class PegSolitaireViewModel extends ChangeNotifier {
     if (!_hasValidMovesRemaining()) {
       _isGameOver = true;
       _isVictory = false;
-      AudioService.instance.playGameOver(); // Reproducción de sonido de game over
+      _audioService?.playGameOver(); // Reproducción de sonido de game over
       _logger.w('STALEMATE: Fin de juego por bloqueo. No existen movimientos válidos.');
     }
 
