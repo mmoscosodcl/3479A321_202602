@@ -4,10 +4,10 @@ import 'package:flutter_pegsolitaire/services/shake_detector_service.dart';
 import 'package:flutter_pegsolitaire/ui/screens/rules_screen.dart';
 import 'package:flutter_pegsolitaire/ui/widgets/peg_cell.dart';
 import 'package:flutter_pegsolitaire/viewmodels/peg_solitaire_viewmodel.dart';
-import 'package:logger/logger.dart';
 import 'package:flutter_pegsolitaire/models/board_position.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:flutter_pegsolitaire/core/utils/app_logger.dart';
 
 class PegSolitaireScreen extends StatefulWidget {
   const PegSolitaireScreen({super.key});
@@ -17,7 +17,6 @@ class PegSolitaireScreen extends StatefulWidget {
 }
 
 class _PegSolitaireScreenState extends State<PegSolitaireScreen> {
-  final Logger _logger = Logger();
   ShakeDetectorService? _shakeDetector;
 
   @override
@@ -35,7 +34,7 @@ class _PegSolitaireScreenState extends State<PegSolitaireScreen> {
 
     // REGLA DE NEGOCIO: Solo actuar si la partida ha terminado
     if (vm.isGameOver) {
-      _logger.i('Shake validado: Partida finalizada. Reiniciando tablero automáticamente.');
+      AppLogger.info('Shake validado: Partida finalizada. Reiniciando tablero automáticamente.');
       vm.initializeBoard();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -44,7 +43,7 @@ class _PegSolitaireScreenState extends State<PegSolitaireScreen> {
         ),
       );
     } else {
-      _logger.d('Shake ignorado: La partida se encuentra activa.');
+      AppLogger.debug('Shake ignorado: La partida se encuentra activa.');
     }
   }
 
@@ -121,7 +120,6 @@ class _PegSolitaireScreenState extends State<PegSolitaireScreen> {
   }
 
  Widget _gameBoard(BuildContext context, PegSolitaireViewModel vm) {
-   _logger.i("Construyendo el tablero de juego");
    return Center(
      child: Padding(
        padding: const EdgeInsets.all(8.0),
@@ -167,7 +165,7 @@ Widget build(BuildContext context) {
             icon: const Icon(Icons.help_outline),
             tooltip: 'Reglas del juego',
             onPressed: () {
-              _logger.i('Navegando a RulesScreen desde PegSolitaireScreen');
+              AppLogger.info('Navegando a RulesScreen desde PegSolitaireScreen');
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const RulesScreen()),

@@ -1,14 +1,13 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/widgets.dart';
-import 'package:logger/logger.dart';
+import 'package:flutter_pegsolitaire/core/utils/app_logger.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 
 class ShakeDetectorService {
   final double shakeThreshold;
   final VoidCallback onShake;
   final Duration debounceDuration;
-  final Logger _logger = Logger();
 
   StreamSubscription<UserAccelerometerEvent>? _subscription;
   late final AppLifecycleListener _lifecycleListener;
@@ -42,11 +41,11 @@ class ShakeDetectorService {
   void _initLifecycleListener() {
     _lifecycleListener = AppLifecycleListener(
       onResume: () {
-        _logger.i('SO Resumed: Reanudando sensor de aceleración');
+        AppLogger.info('SO Resumed: Reanudando sensor de aceleración');
         startListening();
       },
       onPause: () {
-        _logger.i('SO Paused: Suspendiendo sensor para mitigar consumo de batería');
+        AppLogger.info('SO Paused: Suspendiendo sensor para mitigar consumo de batería');
         stopListening();
       },
       onDetach: () => dispose(),
@@ -63,24 +62,24 @@ class ShakeDetectorService {
         final double magnitude = sqrt(
           event.x * event.x + event.y * event.y + event.z * event.z,
         );
-        _logger.i('magnitude ${magnitude} shakeThreshold ${shakeThreshold}> ');
+        AppLogger.info('magnitude ${magnitude} shakeThreshold ${shakeThreshold}> ');
         if (magnitude > shakeThreshold) {
           final now = DateTime.now();
           if (now.difference(_lastShakeTime) > debounceDuration) {
             _lastShakeTime = now;
-            _logger.i('¡Shake detectado! Magnitud: ${magnitude.toStringAsFixed(2)} m/s²');
+            AppLogger.info('¡Shake detectado! Magnitud: ${magnitude.toStringAsFixed(2)} m/s²');
             onShake();
           }
         }
       },
       onError: (error) {
-        _logger.e('Error en el flujo del acelerómetro: $error');
+        AppLogger.error('Error en el flujo del acelerómetro: $error');
       },
       cancelOnError: false,
     );
 
     _isListening = true;
-    _logger.i('ShakeDetectorService: Escucha activa');
+    AppLogger.info('ShakeDetectorService: Escucha activa');
   }
 
   /// Detiene la suscripción al stream liberando el hilo de eventos
@@ -88,7 +87,7 @@ class ShakeDetectorService {
     _subscription?.cancel();
     _subscription = null;
     _isListening = false;
-    _logger.i('ShakeDetectorService: Escucha detenida');
+    AppLogger.info('ShakeDetectorService: Escucha detenida');
   }
 
   /// Liberación completa de recursos
