@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_pegsolitaire/core/enums/cell_type.dart';
+import 'package:flutter_pegsolitaire/services/screenshot_service.dart';
 import 'package:flutter_pegsolitaire/services/shake_detector_service.dart';
 import 'package:flutter_pegsolitaire/ui/screens/rules_screen.dart';
 import 'package:flutter_pegsolitaire/ui/widgets/peg_cell.dart';
@@ -18,6 +20,8 @@ class PegSolitaireScreen extends StatefulWidget {
 
 class _PegSolitaireScreenState extends State<PegSolitaireScreen> {
   ShakeDetectorService? _shakeDetector;
+  final GlobalKey _boardBoundaryKey = GlobalKey();
+  
 
   @override
   void initState() {
@@ -105,13 +109,7 @@ class _PegSolitaireScreenState extends State<PegSolitaireScreen> {
             icon: const Icon(Icons.share_rounded, size: 18),
             label: const Text('Compartir'),
             onPressed: () async {
-              final String message = '¡He completado una partida de Peg Solitaire en ${vm.moveCount} movimientos dejando solo ${vm.remainingPegs} piezas!';
-              await SharePlus.instance.share(ShareParams(
-                text: message,
-                subject: 'Resultado Peg Solitaire',
-                title: '¡Mira mi resultado en Peg Solitaire!',
-                )
-              );
+              await _shareMatchResult(vm);
             },
           ),
         ],
@@ -119,7 +117,14 @@ class _PegSolitaireScreenState extends State<PegSolitaireScreen> {
     );
   }
 
- Widget _gameBoard(BuildContext context, PegSolitaireViewModel vm) {
+  Widget _buildGameBoardContainer(BuildContext context, PegSolitaireViewModel vm) {
+    return RepaintBoundary(
+      key: _boardBoundaryKey,
+      child: _gameBoard(context, vm),
+    );
+}
+
+  Widget _gameBoard(BuildContext context, PegSolitaireViewModel vm) {
    return Center(
      child: Padding(
        padding: const EdgeInsets.all(8.0),
@@ -154,8 +159,35 @@ class _PegSolitaireScreenState extends State<PegSolitaireScreen> {
    );
  }
 
-@override
-Widget build(BuildContext context) {
+// Despacho de evidencia visual mediante Share:
+  Future<void> _shareMatchResult(PegSolitaireViewModel vm) async {
+    HapticFeedback.mediumImpact();
+    final imagePath = await ScreenshotService.captureWidgetToImage(_boardBoundaryKey);
+    final String text = '¡Nuevo desafío en Peg Solitaire! Movimientos: ${vm.moveCount} | Piezas restantes: ${vm.remainingPegs}';
+
+    if (imagePath != null) {
+      await SharePlus.instance.share(
+        ShareParams(
+          text: text,
+          subject: 'Evidencia de Partida Peg Solitaire',
+          title: '¡Mira mi partida en Peg Solitaire!',
+          files: [XFile(imagePath)],
+        ),
+      );
+    } else {
+      await SharePlus.instance.share(
+        ShareParams(
+          text: text,
+          subject: 'Evidencia de Partida Peg Solitaire',
+          title: '¡Mira mi partida en Peg Solitaire!'
+        ),
+      );
+    }
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
     final vm = context.watch<PegSolitaireViewModel>();
 
     return Scaffold(
@@ -177,6 +209,11 @@ Widget build(BuildContext context) {
             tooltip: 'Reiniciar Tablero',
             onPressed: () => context.read<PegSolitaireViewModel>().initializeBoard(),
           ),
+          IconButton(
+            icon: const Icon(Icons.share_rounded),
+            tooltip: 'Compartir Resultado',
+            onPressed: () => _shareMatchResult(vm),
+          ),
         ],),
     
     body: SafeArea( // Protege la UI de los bordes del dispositivo
@@ -187,7 +224,7 @@ Widget build(BuildContext context) {
            const Divider(height: 1),
            // Área de Juego
            Expanded( // Expande el tablero para llenar la pantalla
-             child: _gameBoard(context,vm), // Construye el tablero de juego
+             child: _buildGameBoardContainer(context,vm), // Construye el tablero de juego
            ),
            if (vm.isGameOver) _buildGameOverBanner(context, vm),
          ],
