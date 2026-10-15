@@ -124,6 +124,18 @@ class _PegSolitaireScreenState extends State<PegSolitaireScreen> {
     );
 }
 
+void _handleCellTapped(BuildContext context, BoardPosition pos, PegSolitaireViewModel vm) {
+    // 1. FILTRO DE DOMINIO: Si la celda es inválida (fuera del tablero inglés), descartar
+    if (vm.getCellType(pos) == CellType.voidCell) {
+      return;
+    }
+
+    AppLogger.debug('Celda tocada: $pos | Tipo: ${vm.getCellType(pos)} | Estado de selección: ${vm.isCellSelected(pos)}, Vibración y sonido activados.');
+    HapticFeedback.heavyImpact(); // Retroalimentación háptica para interacción táctil
+    
+    vm.onCellTapped(pos);
+  }
+
   Widget _gameBoard(BuildContext context, PegSolitaireViewModel vm) {
    return Center(
      child: Padding(
@@ -150,7 +162,7 @@ class _PegSolitaireScreenState extends State<PegSolitaireScreen> {
                 position: position,
                 cellType: cellType,
                 isSelected: vm.isCellSelected(position), // Pasa el estado reactivo
-                onTap: () => context.read<PegSolitaireViewModel>().onCellTapped(position),
+                onTap: () => _handleCellTapped(context, position, vm),
               );
            },
          ),
