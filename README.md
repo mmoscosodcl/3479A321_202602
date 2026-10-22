@@ -62,26 +62,44 @@ A continuación se presentan los requerimientos no funcionales del sistema, inco
 
 ## Arquitectura y Estructura del Proyecto
 
-El código fuente se organiza siguiendo una separación limpia de responsabilidades:
+El proyecto incluye un artefacto interactivo de **Arquitectura de Información (IA)** en formato HTML ([`arquitectura_informacion.html`](arquitectura_informacion.html)), diseñado como esquema técnico de referencia para cátedra (Módulo `3479A321` - Semana 8: *Artefactos presentes en el proceso de análisis y diseño*). Para inspeccionarlo en el navegador, basta con abrir directamente `arquitectura_informacion.html`.
+
+El código fuente se organiza siguiendo el patrón arquitectónico **MVVM (Model-View-ViewModel)** con inyección de dependencias (`provider`) y una separación limpia de responsabilidades:
 
 ```text
-lib/
-├── core/
-│   └── enums/
-│       └── cell_type.dart          # Definición de tipos de casilla (voidCell, emptyHole, occupiedPeg)
-├── models/
-│   └── game_record.dart            # Modelo de datos de partida completada
-├── ui/
-│   ├── screens/
-│   │   ├── menu_screen.dart        # Menú principal de la aplicación
-│   │   ├── peg_solitaire_screen.dart # Pantalla y tablero de juego interactivo
-│   │   ├── history_screen.dart     # Listado y visualización del historial de partidas
-│   │   └── rules_screen.dart       # Pantalla con las reglas e instrucciones del juego
-│   ├── theme/
-│   │   └── app_theme.dart          # Configuración del tema Material 3 y tipografías
-│   └── widgets/
-│       └── peg_cell.dart           # Widget individual para renderizar cada celda interactiva
-└── main.dart                       # Entrada principal de la aplicación y enrutamiento
+flutter_pegsolitaire/
+├── arquitectura_informacion.html   # Blueprint interactivo de Arquitectura de Información (IA)
+├── lib/
+│   ├── core/
+│   │   ├── enums/
+│   │   │   └── cell_type.dart      # Definición de tipos de casilla (voidCell, emptyHole, occupiedPeg)
+│   │   └── utils/
+│   │       └── app_logger.dart     # Utilidad de registro y trazabilidad estructurada
+│   ├── models/
+│   │   ├── board_position.dart     # Coordenada inmutable (row, col) en la matriz 7x7
+│   │   ├── game_record.dart        # Modelo de datos de partida completada
+│   │   └── move_record.dart        # Registro cinemático de cada salto ortogonal
+│   ├── repositories/
+│   │   ├── game_history_repository.dart      # Contrato abstracto de persistencia
+│   │   └── json_file_history_repository.dart # Persistencia local en games_history.json
+│   ├── services/
+│   │   ├── audio_service.dart          # Pool de sonido de baja latencia (audioplayers)
+│   │   ├── preferences_service.dart    # Preferencias clave-valor (SharedPreferences)
+│   │   ├── screenshot_service.dart     # Captura PNG de RepaintBoundary para compartir
+│   │   └── shake_detector_service.dart # Detección de sacudida con acelerómetro (sensors_plus)
+│   ├── ui/
+│   │   ├── screens/
+│   │   │   ├── menu_screen.dart          # Menú principal (Patrón Hub & Spoke)
+│   │   │   ├── peg_solitaire_screen.dart # Pantalla y tablero de juego interactivo
+│   │   │   ├── history_screen.dart       # Listado y visualización del historial de partidas
+│   │   │   └── rules_screen.dart         # Pantalla con las reglas e instrucciones del juego
+│   │   ├── theme/
+│   │   │   └── app_theme.dart            # Configuración del tema Material 3 y tipografías
+│   │   └── widgets/
+│   │       └── peg_cell.dart             # Widget atómico para renderizar cada celda interactiva
+│   ├── viewmodels/
+│   │   └── peg_solitaire_viewmodel.dart  # Máquina de estados finitos (FSM) y lógica de dominio
+│   └── main.dart                         # Punto de entrada, MultiProvider y enrutamiento
 ```
 
 ---

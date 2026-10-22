@@ -1,0 +1,1821 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Arquitectura de Información — Flutter Peg Solitaire (3479A321)</title>
+  <style>
+    :root {
+      --bg-canvas: #090d16;
+      --bg-panel: #111827;
+      --bg-card: #161f33;
+      --bg-card-header: #1e293b;
+      --bg-subnode: #0f172a;
+      --border-grid: rgba(148, 163, 184, 0.07);
+      --border-card: rgba(148, 163, 184, 0.22);
+      --border-highlight: rgba(56, 189, 248, 0.55);
+      --text-primary: #f8fafc;
+      --text-secondary: #cbd5e1;
+      --text-muted: #64748b;
+
+      /* Industrial IA Taxonomy Palette (inspired by Mytrofanov IA Blueprint) */
+      --c-root: #06b6d4;       /* 00: Bootstrap & DI Root */
+      --c-screen: #3b82f6;     /* 01: Primary Screens / Routes */
+      --c-widget: #8b5cf6;     /* 02: UI Components / HUD / Wireframe blocks */
+      --c-state: #f59e0b;      /* 03: ViewModel State & FSM */
+      --c-sensor: #10b981;     /* 04: Hardware Sensors & OS Services */
+      --c-data: #f43f5e;       /* 05: Persistence & Domain Models */
+      --c-flow: #38bdf8;
+
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'SFMono-Regular', Menlo, monospace;
+    }
+
+    body.light-mode {
+      --bg-canvas: #f1f5f9;
+      --bg-panel: #ffffff;
+      --bg-card: #ffffff;
+      --bg-card-header: #f8fafc;
+      --bg-subnode: #f1f5f9;
+      --border-grid: rgba(15, 23, 42, 0.06);
+      --border-card: rgba(15, 23, 42, 0.16);
+      --border-highlight: rgba(37, 99, 235, 0.5);
+      --text-primary: #0f172a;
+      --text-secondary: #334155;
+      --text-muted: #64748b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-canvas);
+      background-image:
+        linear-gradient(to right, var(--border-grid) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--border-grid) 1px, transparent 1px);
+      background-size: 24px 24px;
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      line-height: 1.45;
+      min-height: 100vh;
+      overflow-x: auto;
+    }
+
+    /* ─── TOP INDUSTRIAL SPEC HEADER ─── */
+    .ia-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(15, 23, 42, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-card);
+      padding: 14px 28px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    body.light-mode .ia-header {
+      background: rgba(255, 255, 255, 0.94);
+    }
+
+    .brand-block {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-badge {
+      background: linear-gradient(135deg, #0c509d, #06b6d4);
+      color: #fff;
+      font-family: var(--font-mono);
+      font-weight: 800;
+      font-size: 13px;
+      padding: 8px 11px;
+      border-radius: 6px;
+      letter-spacing: 0.08em;
+      box-shadow: 0 0 16px rgba(6, 182, 212, 0.35);
+    }
+
+    .brand-titles h1 {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-titles p {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    /* ─── NAVIGATION TABS & CONTROLS ─── */
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .tab-group {
+      display: flex;
+      background: var(--bg-subnode);
+      padding: 4px;
+      border-radius: 8px;
+      border: 1px solid var(--border-card);
+      gap: 4px;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-family: var(--font-sans);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-primary);
+      background: rgba(148, 163, 184, 0.1);
+    }
+
+    .tab-btn.active {
+      background: var(--c-screen);
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(59, 130, 246, 0.35);
+    }
+
+    .theme-btn {
+      background: var(--bg-subnode);
+      border: 1px solid var(--border-card);
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 7px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+
+    .theme-btn:hover {
+      border-color: var(--c-root);
+      color: var(--text-primary);
+    }
+
+    /* ─── TAXONOMY LEGEND BAR (FILTERABLE) ─── */
+    .legend-bar {
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border-card);
+      padding: 10px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 12px;
+    }
+
+    .legend-items {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .legend-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-right: 6px;
+    }
+
+    .legend-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--bg-subnode);
+      border: 1px solid var(--border-card);
+      color: var(--text-secondary);
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.15s ease;
+    }
+
+    .legend-pill:hover {
+      border-color: var(--text-secondary);
+      transform: translateY(-1px);
+    }
+
+    .legend-pill.active-filter {
+      background: rgba(59, 130, 246, 0.15);
+      border-color: var(--c-screen);
+      color: var(--text-primary);
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .dot-root { background: var(--c-root); box-shadow: 0 0 8px var(--c-root); }
+    .dot-screen { background: var(--c-screen); box-shadow: 0 0 8px var(--c-screen); }
+    .dot-widget { background: var(--c-widget); box-shadow: 0 0 8px var(--c-widget); }
+    .dot-state { background: var(--c-state); box-shadow: 0 0 8px var(--c-state); }
+    .dot-sensor { background: var(--c-sensor); box-shadow: 0 0 8px var(--c-sensor); }
+    .dot-data { background: var(--c-data); box-shadow: 0 0 8px var(--c-data); }
+
+    .meta-stats {
+      display: flex;
+      gap: 16px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .meta-stats span strong {
+      color: var(--text-primary);
+    }
+
+    /* ─── VIEW CONTAINERS ─── */
+    .view-section {
+      display: none;
+      padding: 28px;
+      max-width: 1720px;
+      margin: 0 auto;
+    }
+
+    .view-section.active {
+      display: block;
+    }
+
+    /* ─── TIER DIVIDERS (INDUSTRIAL BLUEPRINT STYLE) ─── */
+    .tier-row {
+      position: relative;
+      margin-bottom: 36px;
+    }
+
+    .tier-label-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .tier-tag {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      padding: 4px 10px;
+      border-radius: 4px;
+      background: rgba(56, 189, 248, 0.12);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    .tier-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-secondary);
+    }
+
+    .tier-line {
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, var(--border-card), transparent);
+    }
+
+    /* ─── ARCHITECTURAL NODE CARDS (DRIBBBLE IA SHOT STYLE) ─── */
+    .ia-node {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: 10px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.35);
+      overflow: hidden;
+      transition: transform 0.2s ease, border-color 0.2s ease, opacity 0.25s ease;
+      position: relative;
+    }
+
+    .ia-node:hover {
+      border-color: var(--border-highlight);
+      transform: translateY(-2px);
+    }
+
+    .ia-node.dimmed {
+      opacity: 0.22;
+      filter: grayscale(70%);
+    }
+
+    .node-top-stripe {
+      height: 4px;
+      width: 100%;
+    }
+    .stripe-root { background: var(--c-root); }
+    .stripe-screen { background: var(--c-screen); }
+    .stripe-widget { background: var(--c-widget); }
+    .stripe-state { background: var(--c-state); }
+    .stripe-sensor { background: var(--c-sensor); }
+    .stripe-data { background: var(--c-data); }
+
+    .node-header {
+      background: var(--bg-card-header);
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-card);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .node-id-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .node-code {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: rgba(15, 23, 42, 0.65);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .node-route {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: rgba(59, 130, 246, 0.18);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.35);
+    }
+
+    .node-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-top: 4px;
+    }
+
+    .node-file {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .node-pattern-badge {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: var(--bg-subnode);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-card);
+      white-space: nowrap;
+    }
+
+    .node-body {
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* ─── MINI WIREFRAME PREVIEW INSIDE NODE CARDS ─── */
+    .mini-wireframe {
+      background: var(--bg-subnode);
+      border: 1px dashed var(--border-card);
+      border-radius: 7px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .wf-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(12, 80, 157, 0.35);
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: #93c5fd;
+    }
+
+    .wf-hud {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .wf-chip {
+      background: rgba(139, 92, 246, 0.14);
+      border: 1px solid rgba(139, 92, 246, 0.35);
+      border-radius: 4px;
+      padding: 4px 8px;
+      text-align: center;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: #c4b5fd;
+    }
+
+    /* 7x7 Cross Mini Grid */
+    .wf-board-cross {
+      display: grid;
+      grid-template-columns: repeat(7, 12px);
+      gap: 3px;
+      justify-content: center;
+      padding: 6px 0;
+    }
+
+    .wf-peg {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    .wf-peg.void { background: transparent; }
+    .wf-peg.occ { background: #3b82f6; box-shadow: 0 0 4px rgba(59,130,246,0.7); }
+    .wf-peg.empty { background: #3e2723; border: 1.5px solid #f59e0b; }
+    .wf-peg.sel { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; }
+
+    /* ─── INTERNAL ANATOMY SECTIONS (SUB-BLOCKS) ─── */
+    .sub-section {
+      background: var(--bg-subnode);
+      border: 1px solid var(--border-card);
+      border-radius: 6px;
+      padding: 10px 12px;
+    }
+
+    .sub-section-title {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-muted);
+      margin-bottom: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .attr-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      font-size: 12px;
+    }
+
+    .attr-list li {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(148, 163, 184, 0.1);
+    }
+
+    .attr-list li:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .attr-key {
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .attr-val {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: right;
+    }
+
+    .flow-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(56, 189, 248, 0.12);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.25);
+    }
+
+    .flow-badge.sensor {
+      background: rgba(16, 185, 129, 0.12);
+      color: #34d399;
+      border-color: rgba(16, 185, 129, 0.3);
+    }
+
+    .flow-badge.state {
+      background: rgba(245, 158, 11, 0.12);
+      color: #fbbf24;
+      border-color: rgba(245, 158, 11, 0.3);
+    }
+
+    .flow-badge.data {
+      background: rgba(244, 63, 94, 0.12);
+      color: #fb7185;
+      border-color: rgba(244, 63, 94, 0.3);
+    }
+
+    /* ─── TREE CONNECTOR LAYOUTS ─── */
+    .center-node-wrap {
+      display: flex;
+      justify-content: center;
+      position: relative;
+    }
+
+    .connector-vertical {
+      width: 2px;
+      height: 32px;
+      background: linear-gradient(180deg, var(--c-root), var(--c-screen));
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .connector-vertical::after {
+      content: '▼';
+      position: absolute;
+      bottom: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 10px;
+      color: var(--c-screen);
+    }
+
+    .connector-label {
+      position: absolute;
+      left: calc(50% + 10px);
+      top: 50%;
+      transform: translateY(-50%);
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: var(--text-muted);
+      background: var(--bg-canvas);
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--border-card);
+      white-space: nowrap;
+    }
+
+    /* Horizontal Bus Bar for Spoke Screens */
+    .bus-bar-container {
+      position: relative;
+      padding-top: 24px;
+    }
+
+    .bus-bar-line {
+      position: absolute;
+      top: 0;
+      left: 16.6%;
+      right: 16.6%;
+      height: 2px;
+      background: var(--c-screen);
+      box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+    }
+
+    .grid-3-spokes {
+      display: grid;
+      grid-template-columns: 1.35fr 1fr 0.9fr;
+      gap: 22px;
+      align-items: start;
+    }
+
+    .grid-4-services {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .grid-2-cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 22px;
+      align-items: start;
+    }
+
+    @media (max-width: 1280px) {
+      .grid-3-spokes,
+      .grid-4-services,
+      .grid-2-cols {
+        grid-template-columns: 1fr;
+      }
+      .bus-bar-line {
+        display: none;
+      }
+    }
+
+    /* ─── SEMANA 8 THEORETICAL MAPPING CARDS ─── */
+    .theory-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+
+    @media (max-width: 1100px) {
+      .theory-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .latch-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+      margin-top: 8px;
+    }
+
+    .latch-table th,
+    .latch-table td {
+      padding: 10px 12px;
+      border: 1px solid var(--border-card);
+      text-align: left;
+    }
+
+    .latch-table th {
+      background: var(--bg-card-header);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+
+    /* ─── FSM PIPELINE STEPPER ─── */
+    .fsm-pipeline {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 14px;
+      margin: 18px 0;
+    }
+
+    @media (max-width: 1200px) {
+      .fsm-pipeline {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .fsm-step {
+      background: var(--bg-subnode);
+      border: 1px solid var(--border-card);
+      border-top: 3px solid var(--c-state);
+      border-radius: 8px;
+      padding: 14px;
+      position: relative;
+    }
+
+    .fsm-step h4 {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: #fbbf24;
+      margin-bottom: 6px;
+    }
+
+    .fsm-step p {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    /* ─── FOOTER ─── */
+    .ia-footer {
+      margin-top: 40px;
+      padding: 18px 28px;
+      border-top: 1px solid var(--border-card);
+      background: var(--bg-panel);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       HEADER BLOCK (INDUSTRIAL BLUEPRINT METADATA)
+  ════════════════════════════════════════════════════════════════════════ -->
+  <header class="ia-header">
+    <div class="brand-block">
+      <div class="brand-badge">IA // 3479A321</div>
+      <div class="brand-titles">
+        <h1>
+          Flutter Peg Solitaire — Arquitectura de Información (IA)
+          <span class="flow-badge">v1.0.0+1 • Material 3 • MVVM</span>
+        </h1>
+        <p>Universidad de Talca • Escuela de Ingeniería Civil en Informática • Semana 8: Artefactos de Análisis y Diseño</p>
+      </div>
+    </div>
+
+    <div class="header-controls">
+      <div class="tab-group" role="tablist">
+        <button class="tab-btn active" onclick="switchView('view-blueprint', this)">01. Blueprint Maestro (IA)</button>
+        <button class="tab-btn" onclick="switchView('view-ecology', this)">02. Ecología, LATCH y Ley de Miller</button>
+        <button class="tab-btn" onclick="switchView('view-fsm', this)">03. Máquina de Estados (FSM) &amp; Sensores</button>
+        <button class="tab-btn" onclick="switchView('view-schema', this)">04. Diccionario de Datos y Persistencia</button>
+      </div>
+      <button class="theme-btn" onclick="toggleTheme()" id="themeToggleBtn">☀️ Modo Claro</button>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       INTERACTIVE LAYER FILTER / LEGEND BAR
+  ════════════════════════════════════════════════════════════════════════ -->
+  <section class="legend-bar">
+    <div class="legend-items">
+      <span class="legend-label">Filtrar Capas IA:</span>
+      <span class="legend-pill active-filter" onclick="filterLayer('all', this)">Todas las Capas (12 Nodos)</span>
+      <span class="legend-pill" onclick="filterLayer('root', this)"><i class="dot dot-root"></i> 00. Bootstrap &amp; DI</span>
+      <span class="legend-pill" onclick="filterLayer('screen', this)"><i class="dot dot-screen"></i> 01. Pantallas &amp; Rutas</span>
+      <span class="legend-pill" onclick="filterLayer('widget', this)"><i class="dot dot-widget"></i> 02. Componentes UI / HUD</span>
+      <span class="legend-pill" onclick="filterLayer('state', this)"><i class="dot dot-state"></i> 03. ViewModel &amp; FSM</span>
+      <span class="legend-pill" onclick="filterLayer('sensor', this)"><i class="dot dot-sensor"></i> 04. Sensores &amp; Servicios OS</span>
+      <span class="legend-pill" onclick="filterLayer('data', this)"><i class="dot dot-data"></i> 05. Persistencia &amp; Modelos</span>
+    </div>
+    <div class="meta-stats">
+      <span>Patrón Primario: <strong>Hub &amp; Spoke + Stack</strong></span>
+      <span>Rutas Nombradas: <strong>4 ('/', '/game', '/history', '/rules')</strong></span>
+      <span>Tablero: <strong>7×7 (33 activas / 16 voidCell)</strong></span>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       VIEW 01: MASTER INFORMATION ARCHITECTURE BLUEPRINT (DRIBBBLE STYLE)
+  ════════════════════════════════════════════════════════════════════════ -->
+  <main id="view-blueprint" class="view-section active">
+
+    <!-- TIER 0: BOOTSTRAP & DEPENDENCY INJECTION -->
+    <div class="tier-row">
+      <div class="tier-label-bar">
+        <span class="tier-tag">NIVEL 00 // BOOTSTRAP &amp; RAÍZ DE INYECCIÓN</span>
+        <span class="tier-title">Inicialización Asíncrona de Servicios e Inyección en Árbol de Widgets</span>
+        <div class="tier-line"></div>
+      </div>
+
+      <div class="center-node-wrap">
+        <article class="ia-node" data-layer="root" style="max-width: 760px; width: 100%;">
+          <div class="node-top-stripe stripe-root"></div>
+          <div class="node-header">
+            <div>
+              <div class="node-id-group">
+                <span class="node-code">0.0</span>
+                <span class="node-route">main() → PegSolitaireApp</span>
+                <span class="flow-badge">MultiProvider Root</span>
+              </div>
+              <div class="node-title"> Punto de Entrada, Tema Global y Enrutador Declarativo</div>
+              <div class="node-file">lib/main.dart • lib/ui/theme/app_theme.dart</div>
+            </div>
+            <span class="node-pattern-badge">Root Container</span>
+          </div>
+          <div class="node-body">
+            <div class="grid-2-cols" style="gap: 12px;">
+              <div class="sub-section">
+                <div class="sub-section-title">
+                  <span>Pre-Flight &amp; Inyección (Providers)</span>
+                  <span class="flow-badge">Singleton / DI</span>
+                </div>
+                <ul class="attr-list">
+                  <li><span class="attr-key">WidgetsFlutterBinding</span><span class="attr-val">ensureInitialized()</span></li>
+                  <li><span class="attr-key">Provider&lt;IGameHistoryRepository&gt;</span><span class="attr-val">JsonFileHistoryRepository</span></li>
+                  <li><span class="attr-key">Provider&lt;PreferencesService&gt;</span><span class="attr-val">SharedPreferences</span></li>
+                  <li><span class="attr-key">Provider&lt;AudioService&gt;</span><span class="attr-val">AudioService.instance</span></li>
+                </ul>
+              </div>
+              <div class="sub-section">
+                <div class="sub-section-title">
+                  <span>Identidad Visual &amp; MaterialApp</span>
+                  <span class="flow-badge">Material 3</span>
+                </div>
+                <ul class="attr-list">
+                  <li><span class="attr-key">title</span><span class="attr-val">'Solitario Ingles'</span></li>
+                  <li><span class="attr-key">primarySeed</span><span class="attr-val">#0C509D (Nogal/Azul)</span></li>
+                  <li><span class="attr-key">scaffoldBackground</span><span class="attr-val">#F5F2EB (Arena Cálido)</span></li>
+                  <li><span class="attr-key">fontFamily (AppBar)</span><span class="attr-val">'TacoCrispy' (20px Bold)</span></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <div class="connector-vertical">
+        <span class="connector-label">initialRoute: '/'</span>
+      </div>
+
+      <!-- TIER 1: HUB NAVIGATION (MENU SCREEN) -->
+      <div class="tier-label-bar">
+        <span class="tier-tag">NIVEL 01 // NODO CENTRAL (HUB / ÍNDICE)</span>
+        <span class="tier-title">Arquitectura Hub &amp; Spoke — Distribuidor de Tareas Primarias</span>
+        <div class="tier-line"></div>
+      </div>
+
+      <div class="center-node-wrap">
+        <article class="ia-node" data-layer="screen" style="max-width: 680px; width: 100%;">
+          <div class="node-top-stripe stripe-screen"></div>
+          <div class="node-header">
+            <div>
+              <div class="node-id-group">
+                <span class="node-code">1.0</span>
+                <span class="node-route">Route: '/'</span>
+                <span class="flow-badge">StatelessWidget</span>
+              </div>
+              <div class="node-title">MenuScreen — Menú Principal (Hub)</div>
+              <div class="node-file">lib/ui/screens/menu_screen.dart</div>
+            </div>
+            <span class="node-pattern-badge">Patrón: Hub &amp; Spoke</span>
+          </div>
+          <div class="node-body">
+            <div class="mini-wireframe">
+              <div style="text-align:center; font-family:var(--font-mono); font-size:11px; color:var(--text-primary); font-weight:700; padding:4px;">
+                [Icon: grid_on_rounded 80px] • PEG SOLITAIRE
+              </div>
+              <div style="display:flex; gap:6px; justify-content:center; flex-wrap:wrap;">
+                <span class="flow-badge">▶ NUEVA PARTIDA ('/game')</span>
+                <span class="flow-badge">🕘 HISTORIAL DE PARTIDAS ('/history')</span>
+                <span class="flow-badge">📖 REGLAS DEL JUEGO ('/rules')</span>
+              </div>
+            </div>
+            <div class="sub-section">
+              <div class="sub-section-title">
+                <span>Inventario de Componentes UI &amp; Disparadores de Navegación</span>
+                <span>RF-01</span>
+              </div>
+              <ul class="attr-list">
+                <li>
+                  <span class="attr-key">1.0.1 Hero Branding</span>
+                  <span class="attr-val">Icon(Icons.grid_on_rounded, 80dp) + HeadlineMedium</span>
+                </li>
+                <li>
+                  <span class="attr-key">1.0.2 CTA Primario (FilledButton.icon)</span>
+                  <span class="flow-badge">pushNamed('/game')</span>
+                </li>
+                <li>
+                  <span class="attr-key">1.0.3 CTA Secundario (OutlinedButton.icon)</span>
+                  <span class="flow-badge">pushNamed('/history')</span>
+                </li>
+                <li>
+                  <span class="attr-key">1.0.4 CTA Terciario (TextButton.icon)</span>
+                  <span class="flow-badge">pushNamed('/rules')</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <div class="connector-vertical">
+        <span class="connector-label">Navigator.pushNamed(context, route)</span>
+      </div>
+
+      <!-- TIER 2: SPOKE SCREENS (/game, /history, /rules) -->
+      <div class="tier-label-bar">
+        <span class="tier-tag">NIVEL 02 // PANTALLAS DE SEGUNDO NIVEL (SPOKES &amp; STACK)</span>
+        <span class="tier-title">Vistas Operativas, Consulta Histórica y Ayuda Contextual</span>
+        <div class="tier-line"></div>
+      </div>
+
+      <div class="bus-bar-container">
+        <div class="bus-bar-line"></div>
+
+        <div class="grid-3-spokes">
+
+          <!-- NODE 1.1: PEG SOLITAIRE SCREEN (/game) -->
+          <article class="ia-node" data-layer="screen">
+            <div class="node-top-stripe stripe-screen"></div>
+            <div class="node-header">
+              <div>
+                <div class="node-id-group">
+                  <span class="node-code">1.1</span>
+                  <span class="node-route">Route: '/game'</span>
+                  <span class="flow-badge state">StatefulWidget + Consumer</span>
+                </div>
+                <div class="node-title">PegSolitaireScreen — Tablero Activo</div>
+                <div class="node-file">lib/ui/screens/peg_solitaire_screen.dart</div>
+              </div>
+              <span class="node-pattern-badge">Core Gameplay</span>
+            </div>
+
+            <div class="node-body">
+              <!-- Mini Wireframe of Game Screen -->
+              <div class="mini-wireframe">
+                <div class="wf-bar">
+                  <span>← Solitario</span>
+                  <span>[?] [↻] [📤]</span>
+                </div>
+                <div class="wf-hud">
+                  <div class="wf-chip">PIEZAS: <strong>32</strong></div>
+                  <div class="wf-chip">MOVIMIENTOS: <strong>0</strong></div>
+                </div>
+                <div class="wf-board-cross" title="Geometría 7x7 Solitario Inglés (32 ocupadas, centro vacío)">
+                  <!-- Row 0 -->
+                  <span class="wf-peg void"></span><span class="wf-peg void"></span><span class="wf-peg occ"></span><span class="wf-peg occ"></span><span class="wf-peg occ"></span><span class="wf-peg void"></span><span class="wf-peg void"></span>
+                  <!-- Row 1 -->
+                  <span class="wf-peg void"></span><span class="wf-peg void"></span><span class="wf-peg occ"></span><span class="wf-peg sel"></span><span class="wf-peg occ"></span><span class="wf-peg void"></span><span class="wf-peg void"></span>
+                  <!-- Row 2 -->
+                  <span class="wf-peg occ"></span><span class="wf-peg occ"></span><span class="wf-peg occ"></span><span class="wf-peg occ"></span><span class="wf-peg occ"></span><span class="wf-peg occ"></span><span class="wf-peg occ"></span>
+                  <!-- Row 3 (Center Empty) -->
+                  <span class="wf-peg occ"></span><span class="wf-peg occ"></span><span class="wf-peg occ"></span><span class="wf-peg empty"></span><span class="wf-peg occ"></span><span class="wf-peg occ"></span><span class="wf-peg occ"></span>
+                  <!-- Row 4 -->
+                  <span class="wf-peg occ"></span><span class="wf-peg occ"></span><span class="wf-peg occ"></span><span class="wf-peg occ"></span><span class="wf-peg occ"></span><span class="wf-peg occ"></span><span class="wf-peg occ"></span>
+                  <!-- Row 5 -->
+                  <span class="wf-peg void"></span><span class="wf-peg void"></span><span class="wf-peg occ"></span><span class="wf-peg occ"></span><span class="wf-peg occ"></span><span class="wf-peg void"></span><span class="wf-peg void"></span>
+                  <!-- Row 6 -->
+                  <span class="wf-peg void"></span><span class="wf-peg void"></span><span class="wf-peg occ"></span><span class="wf-peg occ"></span><span class="wf-peg occ"></span><span class="wf-peg void"></span><span class="wf-peg void"></span>
+                </div>
+              </div>
+
+              <!-- Sub-block: AppBar Actions -->
+              <div class="sub-section">
+                <div class="sub-section-title">
+                  <span>1.1.1 Barra de Aplicación (AppBar Actions)</span>
+                  <span>3 Acciones</span>
+                </div>
+                <ul class="attr-list">
+                  <li>
+                    <span class="attr-key">Icons.help_outline ('Reglas')</span>
+                    <span class="flow-badge">push → RulesScreen (1.3)</span>
+                  </li>
+                  <li>
+                    <span class="attr-key">Icons.refresh_rounded ('Reiniciar')</span>
+                    <span class="flow-badge state">vm.initializeBoard()</span>
+                  </li>
+                  <li>
+                    <span class="attr-key">Icons.share_rounded ('Compartir')</span>
+                    <span class="flow-badge sensor">_shareMatchResult(vm)</span>
+                  </li>
+                </ul>
+              </div>
+
+              <!-- Sub-block: ScoreBoard HUD -->
+              <div class="sub-section">
+                <div class="sub-section-title">
+                  <span>1.1.2 HUD de Métricas (_buildScoreBoard)</span>
+                  <span>RF-07 • Ley de Miller (2 Chunks)</span>
+                </div>
+                <ul class="attr-list">
+                  <li>
+                    <span class="attr-key">Chunk A: 'Piezas'</span>
+                    <span class="attr-val">vm.remainingPegs (Init: 32 → Meta: 1)</span>
+                  </li>
+                  <li>
+                    <span class="attr-key">Chunk B: 'Movimientos'</span>
+                    <span class="attr-val">vm.moveCount (Contador incremental)</span>
+                  </li>
+                </ul>
+              </div>
+
+              <!-- Sub-block: RepaintBoundary + GridView 7x7 -->
+              <div class="sub-section">
+                <div class="sub-section-title">
+                  <span>1.1.3 Lienzo de Tablero (RepaintBoundary + GridView 7×7)</span>
+                  <span>RF-02..06</span>
+                </div>
+                <ul class="attr-list">
+                  <li>
+                    <span class="attr-key">GlobalKey _boardBoundaryKey</span>
+                    <span class="attr-val">Captura PNG (pixelRatio: 2.0)</span>
+                  </li>
+                  <li>
+                    <span class="attr-key">GridView.builder (itemCount: 49)</span>
+                    <span class="attr-val">NeverScrollable • AspectRatio 1.0</span>
+                  </li>
+                  <li>
+                    <span class="attr-key">Widget Hijo: PegCell (2.1)</span>
+                    <span class="flow-badge state">Haptic + vm.onCellTapped(pos)</span>
+                  </li>
+                </ul>
+              </div>
+
+              <!-- Sub-block: Conditional Game Over Banner -->
+              <div class="sub-section">
+                <div class="sub-section-title">
+                  <span>1.1.4 Banner Condicional Fin de Juego (if vm.isGameOver)</span>
+                  <span>RF-08</span>
+                </div>
+                <ul class="attr-list">
+                  <li>
+                    <span class="attr-key">Estado Victoria (remainingPegs == 1)</span>
+                    <span class="attr-val">Verde • '¡Victoria Magistral!'</span>
+                  </li>
+                  <li>
+                    <span class="attr-key">Estado Derrota (Sin saltos válidos)</span>
+                    <span class="attr-val">Rojo • 'Juego Terminado (Sin movimientos)'</span>
+                  </li>
+                  <li>
+                    <span class="attr-key">Acción Contextual</span>
+                    <span class="flow-badge sensor">FilledButton.icon('Compartir')</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </article>
+
+          <!-- NODE 1.2: HISTORY SCREEN (/history) -->
+          <article class="ia-node" data-layer="screen">
+            <div class="node-top-stripe stripe-screen"></div>
+            <div class="node-header">
+              <div>
+                <div class="node-id-group">
+                  <span class="node-code">1.2</span>
+                  <span class="node-route">Route: '/history'</span>
+                  <span class="flow-badge data">FutureBuilder&lt;List&lt;GameRecord&gt;&gt;</span>
+                </div>
+                <div class="node-title">HistoryScreen — Historial de Partidas</div>
+                <div class="node-file">lib/ui/screens/history_screen.dart</div>
+              </div>
+              <span class="node-pattern-badge">LATCH: Time + Category</span>
+            </div>
+
+            <div class="node-body">
+              <div class="mini-wireframe">
+                <div class="wf-bar">
+                  <span>← Historial de Partidas</span>
+                  <span>JSON I/O</span>
+                </div>
+                <div style="background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.3); padding:5px 8px; border-radius:4px; font-family:var(--font-mono); font-size:10px; display:flex; justify-content:space-between;">
+                  <span>🏆 Victoria • 20/10/2026 11:30</span>
+                  <span>Mov: 31 | Rest: 1</span>
+                </div>
+                <div style="background:rgba(244,63,94,0.12); border:1px solid rgba(244,63,94,0.3); padding:5px 8px; border-radius:4px; font-family:var(--font-mono); font-size:10px; display:flex; justify-content:space-between;">
+                  <span>⏳ Finalizado • 19/10/2026 18:15</span>
+                  <span>Mov: 24 | Rest: 8</span>
+                </div>
+              </div>
+
+              <div class="sub-section">
+                <div class="sub-section-title">
+                  <span>1.2.1 Estados Asíncronos del FutureBuilder</span>
+                  <span>RF-10</span>
+                </div>
+                <ul class="attr-list">
+                  <li>
+                    <span class="attr-key">ConnectionState.waiting</span>
+                    <span class="attr-val">Center → CircularProgressIndicator</span>
+                  </li>
+                  <li>
+                    <span class="attr-key">snapshot.hasError</span>
+                    <span class="attr-val">'Error crítico en lectura de datos'</span>
+                  </li>
+                  <li>
+                    <span class="attr-key">records.isEmpty</span>
+                    <span class="attr-val">'No existen registros de partidas...'</span>
+                  </li>
+                  <li>
+                    <span class="attr-key">snapshot.hasData</span>
+                    <span class="attr-val">ListView.builder (_buildRecordCard)</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div class="sub-section">
+                <div class="sub-section-title">
+                  <span>1.2.2 Anatomía de Tarjeta (_buildRecordCard)</span>
+                  <span>6 Atributos</span>
+                </div>
+                <ul class="attr-list">
+                  <li>
+                    <span class="attr-key">Leading Avatar</span>
+                    <span class="attr-val">emoji_events (Verde) | timer_off (Rojo)</span>
+                  </li>
+                  <li>
+                    <span class="attr-key">Title</span>
+                    <span class="attr-val">'Victoria' | 'Juego Finalizado'</span>
+                  </li>
+                  <li>
+                    <span class="attr-key">Subtitle (Líneas 1-2)</span>
+                    <span class="attr-val">Fecha (DD/MM/YYYY HH:mm) + Duración (Xm Ys)</span>
+                  </li>
+                  <li>
+                    <span class="attr-key">Trailing Métricas</span>
+                    <span class="attr-val">totalMoves + remainingPegs</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </article>
+
+          <!-- NODE 1.3: RULES SCREEN (/rules) -->
+          <article class="ia-node" data-layer="screen">
+            <div class="node-top-stripe stripe-screen"></div>
+            <div class="node-header">
+              <div>
+                <div class="node-id-group">
+                  <span class="node-code">1.3</span>
+                  <span class="node-route">Route: '/rules'</span>
+                  <span class="flow-badge">Convergent Node</span>
+                </div>
+                <div class="node-title">RulesScreen — Reglas del Juego</div>
+                <div class="node-file">lib/ui/screens/rules_screen.dart</div>
+              </div>
+              <span class="node-pattern-badge">Doble Punto de Entrada</span>
+            </div>
+
+            <div class="node-body">
+              <div class="mini-wireframe">
+                <div class="wf-bar">
+                  <span>← Reglas del Juego</span>
+                  <span>Stack Pop</span>
+                </div>
+                <div style="padding:6px; font-size:10.5px; color:var(--text-secondary); font-family:var(--font-mono);">
+                  [Card: Objetivo] Saltar sobre piezas adyacentes hacia un espacio vacío hasta dejar 1 pieza.
+                </div>
+                <div style="text-align:center;">
+                  <span class="flow-badge">↩ Volver al Juego (Navigator.pop)</span>
+                </div>
+              </div>
+
+              <div class="sub-section">
+                <div class="sub-section-title">
+                  <span>1.3.1 Convergencia de Flujos de Entrada</span>
+                  <span>RF-11</span>
+                </div>
+                <ul class="attr-list">
+                  <li>
+                    <span class="attr-key">Entrada A (Desde Hub 1.0)</span>
+                    <span class="flow-badge">pushNamed('/rules')</span>
+                  </li>
+                  <li>
+                    <span class="attr-key">Entrada B (In-Game AppBar 1.1)</span>
+                    <span class="flow-badge">MaterialPageRoute(RulesScreen)</span>
+                  </li>
+                  <li>
+                    <span class="attr-key">Salida Única (Retorno)</span>
+                    <span class="attr-val">Navigator.pop(context) (Preserva partida)</span>
+                  </li>
+                </ul>
+              </div>
+
+              <!-- Nested Reusable Widget Card: PegCell (2.1) -->
+              <div class="sub-section" style="border-color: rgba(139, 92, 246, 0.45);">
+                <div class="sub-section-title">
+                  <span style="color:#c4b5fd;">2.1 Átomo UI: PegCell Widget</span>
+                  <span class="flow-badge" style="background:rgba(139,92,246,0.2); color:#ddd6fe;">lib/ui/widgets/peg_cell.dart</span>
+                </div>
+                <ul class="attr-list">
+                  <li>
+                    <span class="attr-key">CellType.voidCell</span>
+                    <span class="attr-val">SizedBox.shrink() (16 esquinas 2×2)</span>
+                  </li>
+                  <li>
+                    <span class="attr-key">CellType.emptyHole</span>
+                    <span class="attr-val">Círculo #3E2723 + Sombras Internas</span>
+                  </li>
+                  <li>
+                    <span class="attr-key">CellType.occupiedPeg</span>
+                    <span class="attr-val">RadialGradient + Borde Ámbar si isSelected</span>
+                  </li>
+                  <li>
+                    <span class="attr-key">AnimatedContainer</span>
+                    <span class="attr-val">200ms Curves.easeInOut (60 FPS / RNF-01)</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </article>
+
+        </div>
+      </div>
+
+      <div class="connector-vertical">
+        <span class="connector-label">Eventos UI • Sensores Físicos • Notificaciones de Estado (ChangeNotifier)</span>
+      </div>
+
+      <!-- TIER 3: VIEWMODEL FSM, HARDWARE SENSORS & PERSISTENCE LAYER -->
+      <div class="tier-label-bar">
+        <span class="tier-tag">NIVEL 03 // CAPA DE ESTADO REACTIVO (MVVM), SENSORES HARDWARE Y PERSISTENCIA LOCAL</span>
+        <span class="tier-title">Orquestación de Reglas de Negocio, Acelerómetro, Audio de Baja Latencia y Almacenamiento JSON</span>
+        <div class="tier-line"></div>
+      </div>
+
+      <div class="grid-4-services">
+
+        <!-- NODE 3.1: VIEWMODEL & FSM -->
+        <article class="ia-node" data-layer="state">
+          <div class="node-top-stripe stripe-state"></div>
+          <div class="node-header">
+            <div>
+              <div class="node-id-group">
+                <span class="node-code">3.1</span>
+                <span class="flow-badge state">ChangeNotifier</span>
+              </div>
+              <div class="node-title">PegSolitaireViewModel</div>
+              <div class="node-file">lib/viewmodels/peg_solitaire_viewmodel.dart</div>
+            </div>
+          </div>
+          <div class="node-body">
+            <div class="sub-section">
+              <div class="sub-section-title">
+                <span>Propiedades Reactivas Expuestas</span>
+                <span>MVVM</span>
+              </div>
+              <ul class="attr-list">
+                <li><span class="attr-key">boardState</span><span class="attr-val">List&lt;List&lt;CellType&gt;&gt; (7×7)</span></li>
+                <li><span class="attr-key">selectedPosition</span><span class="attr-val">BoardPosition? (Nullable)</span></li>
+                <li><span class="attr-key">remainingPegs</span><span class="attr-val">int (32 → 1)</span></li>
+                <li><span class="attr-key">moveCount</span><span class="attr-val">int (0..31)</span></li>
+                <li><span class="attr-key">isGameOver / isVictory</span><span class="attr-val">bool</span></li>
+                <li><span class="attr-key">moveHistory</span><span class="attr-val">List&lt;MoveRecord&gt; (Inmutable)</span></li>
+              </ul>
+            </div>
+            <div class="sub-section">
+              <div class="sub-section-title">
+                <span>Transiciones FSM (onCellTapped)</span>
+                <span>RF-04..08</span>
+              </div>
+              <ul class="attr-list">
+                <li><span class="attr-key">1. Selección Inicial</span><span class="attr-val">occupiedPeg → playSelection()</span></li>
+                <li><span class="attr-key">2. Deselección</span><span class="attr-val">Misma celda → selected = null</span></li>
+                <li><span class="attr-key">3. Cambio de Foco</span><span class="attr-val">Otra occupiedPeg → re-foco</span></li>
+                <li><span class="attr-key">4. Salto Ortogonal</span><span class="attr-val">Δ=2 + mid occupied → _executeMove()</span></li>
+                <li><span class="attr-key">5. Fin de Partida</span><span class="attr-val">_persistCompletedGame()</span></li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- NODE 4.1: SHAKE DETECTOR SERVICE (ACCELEROMETER) -->
+        <article class="ia-node" data-layer="sensor">
+          <div class="node-top-stripe stripe-sensor"></div>
+          <div class="node-header">
+            <div>
+              <div class="node-id-group">
+                <span class="node-code">4.1</span>
+                <span class="flow-badge sensor">sensors_plus</span>
+              </div>
+              <div class="node-title">ShakeDetectorService</div>
+              <div class="node-file">lib/services/shake_detector_service.dart</div>
+            </div>
+          </div>
+          <div class="node-body">
+            <div class="sub-section">
+              <div class="sub-section-title">
+                <span>Cinemática y Filtro de Señal</span>
+                <span>Acelerómetro</span>
+              </div>
+              <ul class="attr-list">
+                <li><span class="attr-key">Stream Origen</span><span class="attr-val">userAccelerometerEventStream()</span></li>
+                <li><span class="attr-key">Magnitud Vectorial</span><span class="attr-val">√(x² + y² + z²)</span></li>
+                <li><span class="attr-key">shakeThresholdGravity</span><span class="attr-val">10.0 m/s² (Sin gravedad)</span></li>
+                <li><span class="attr-key">shakeDebounceTimeMs</span><span class="attr-val">1200 ms (Anti-rebote)</span></li>
+              </ul>
+            </div>
+            <div class="sub-section">
+              <div class="sub-section-title">
+                <span>Ciclo de Vida &amp; Regla de Negocio</span>
+                <span>AppLifecycle</span>
+              </div>
+              <ul class="attr-list">
+                <li><span class="attr-key">onPause / onDetach</span><span class="attr-val">stopListening() (Ahorro batería)</span></li>
+                <li><span class="attr-key">onResume</span><span class="attr-val">startListening()</span></li>
+                <li><span class="attr-key">Guardia _handleShakeEvent</span><span class="attr-val">Solo actúa si vm.isGameOver == true</span></li>
+                <li><span class="attr-key">Feedback UI</span><span class="attr-val">SnackBar floating + initializeBoard()</span></li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- NODE 4.2: AUDIO & SCREENSHOT OS SERVICES -->
+        <article class="ia-node" data-layer="sensor">
+          <div class="node-top-stripe stripe-sensor"></div>
+          <div class="node-header">
+            <div>
+              <div class="node-id-group">
+                <span class="node-code">4.2</span>
+                <span class="flow-badge sensor">Audio + SharePlus</span>
+              </div>
+              <div class="node-title">AudioService &amp; ScreenshotService</div>
+              <div class="node-file">lib/services/audio_service.dart • screenshot_service.dart</div>
+            </div>
+          </div>
+          <div class="node-body">
+            <div class="sub-section">
+              <div class="sub-section-title">
+                <span>AudioService (Pool de Baja Latencia)</span>
+                <span>audioplayers</span>
+              </div>
+              <ul class="attr-list">
+                <li><span class="attr-key">PlayerMode</span><span class="attr-val">PlayerMode.lowLatency</span></li>
+                <li><span class="attr-key">playSelection()</span><span class="attr-val">sounds/selection.mp3 (Vol 0.5)</span></li>
+                <li><span class="attr-key">playJump()</span><span class="attr-val">sounds/jump.mp3 (Vol 0.8)</span></li>
+                <li><span class="attr-key">playDefeat()</span><span class="attr-val">sounds/defeat.mp3 (Vol 0.9)</span></li>
+              </ul>
+            </div>
+            <div class="sub-section">
+              <div class="sub-section-title">
+                <span>ScreenshotService + Intents OS</span>
+                <span>share_plus</span>
+              </div>
+              <ul class="attr-list">
+                <li><span class="attr-key">RenderRepaintBoundary</span><span class="attr-val">toImage(pixelRatio: 2.0)</span></li>
+                <li><span class="attr-key">Archivo Temporal</span><span class="attr-val">getTemporaryDirectory()/peg_solitaire_*.png</span></li>
+                <li><span class="attr-key">SharePlus.instance.share</span><span class="attr-val">XFile(png) + Texto de resultado</span></li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- NODE 5.1: REPOSITORIES & PERSISTENCE -->
+        <article class="ia-node" data-layer="data">
+          <div class="node-top-stripe stripe-data"></div>
+          <div class="node-header">
+            <div>
+              <div class="node-id-group">
+                <span class="node-code">5.1</span>
+                <span class="flow-badge data">Local I/O + Prefs</span>
+              </div>
+              <div class="node-title">Persistencia Local Dual</div>
+              <div class="node-file">lib/repositories/json_file_history_repository.dart</div>
+            </div>
+          </div>
+          <div class="node-body">
+            <div class="sub-section">
+              <div class="sub-section-title">
+                <span>JsonFileHistoryRepository</span>
+                <span>RF-09 • Documentos</span>
+              </div>
+              <ul class="attr-list">
+                <li><span class="attr-key">Archivo Sandbox</span><span class="attr-val">Documents/games_history.json</span></li>
+                <li><span class="attr-key">saveGame(GameRecord)</span><span class="attr-val">insert(0, record) • Flush atómico</span></li>
+                <li><span class="attr-key">getHistory()</span><span class="attr-val">Future&lt;List&lt;GameRecord&gt;&gt;</span></li>
+                <li><span class="attr-key">Resiliencia</span><span class="attr-val">Catch FileSystem / FormatException</span></li>
+              </ul>
+            </div>
+            <div class="sub-section">
+              <div class="sub-section-title">
+                <span>PreferencesService (Clave-Valor)</span>
+                <span>shared_preferences</span>
+              </div>
+              <ul class="attr-list">
+                <li><span class="attr-key">sound_enabled</span><span class="attr-val">bool (Default: true)</span></li>
+                <li><span class="attr-key">vibration_enabled</span><span class="attr-val">bool (Default: true)</span></li>
+                <li><span class="attr-key">best_remaining_pegs</span><span class="attr-val">int? (Récord histórico)</span></li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       VIEW 02: ECOLOGÍA DE LA INFORMACIÓN, TEOREMA LATCH Y LEY DE MILLER
+  ════════════════════════════════════════════════════════════════════════ -->
+  <section id="view-ecology" class="view-section">
+    <div class="tier-label-bar">
+      <span class="tier-tag">FUNDAMENTOS TEÓRICOS SEMANA 8</span>
+      <span class="tier-title">Aplicación Directa de los Artefactos de Análisis y Diseño en Flutter Peg Solitaire</span>
+      <div class="tier-line"></div>
+    </div>
+
+    <div class="theory-grid">
+      <!-- CARD 1: USUARIO -->
+      <article class="ia-node">
+        <div class="node-top-stripe stripe-root"></div>
+        <div class="node-header">
+          <div>
+            <span class="node-code">ECOLOGÍA 01</span>
+            <div class="node-title">Usuario (Cognición y Ergonomía Móvil)</div>
+          </div>
+          <span class="node-pattern-badge">Morville &amp; Rosenfeld</span>
+        </div>
+        <div class="node-body">
+          <div class="sub-section">
+            <div class="sub-section-title">Ley de Miller (7 ± 2 Chunks)</div>
+            <p style="font-size:12.5px; color:var(--text-secondary);">
+              Para evitar sobrecarga en la memoria de trabajo durante el cálculo espacial de saltos:
+            </p>
+            <ul class="attr-list" style="margin-top:8px;">
+              <li><span class="attr-key">Menú Principal (Hub)</span><span class="attr-val">3 opciones (óptimo &lt; 5)</span></li>
+              <li><span class="attr-key">AppBar de Partida</span><span class="attr-val">3 iconos de acción</span></li>
+              <li><span class="attr-key">HUD ScoreBoard</span><span class="attr-val">2 indicadores (Piezas, Movimientos)</span></li>
+              <li><span class="attr-key">Área Táctil (RNF-04)</span><span class="attr-val">Mínimo 48×48 dp por celda</span></li>
+            </ul>
+          </div>
+        </div>
+      </article>
+
+      <!-- CARD 2: CONTENIDO -->
+      <article class="ia-node">
+        <div class="node-top-stripe stripe-data"></div>
+        <div class="node-header">
+          <div>
+            <span class="node-code">ECOLOGÍA 02</span>
+            <div class="node-title">Contenido (Modelos y Persistencia)</div>
+          </div>
+          <span class="node-pattern-badge">Estructuras de Datos</span>
+        </div>
+        <div class="node-body">
+          <div class="sub-section">
+            <div class="sub-section-title">Volumen, Formato y Ciclo de Vida</div>
+            <p style="font-size:12.5px; color:var(--text-secondary);">
+              El contenido se divide en estado efímero de alta frecuencia (60 FPS) y registro histórico inmutable:
+            </p>
+            <ul class="attr-list" style="margin-top:8px;">
+              <li><span class="attr-key">Matriz 7×7 (Efímera)</span><span class="attr-val">49 celdas (CellType enum)</span></li>
+              <li><span class="attr-key">Trazabilidad Cinemática</span><span class="attr-val">List&lt;MoveRecord&gt; (from, to, timestamp)</span></li>
+              <li><span class="attr-key">Archivo Persistente</span><span class="attr-val">games_history.json (Local Sandbox)</span></li>
+              <li><span class="attr-key">Preferencias Usuario</span><span class="attr-val">SharedPreferences (Key-Value)</span></li>
+            </ul>
+          </div>
+        </div>
+      </article>
+
+      <!-- CARD 3: CONTEXTO -->
+      <article class="ia-node">
+        <div class="node-top-stripe stripe-sensor"></div>
+        <div class="node-header">
+          <div>
+            <span class="node-code">ECOLOGÍA 03</span>
+            <div class="node-title">Contexto (Reglas de Negocio y Entorno Móvil)</div>
+          </div>
+          <span class="node-pattern-badge">Hardware &amp; Reglas</span>
+        </div>
+        <div class="node-body">
+          <div class="sub-section">
+            <div class="sub-section-title">Restricciones Físicas y del Dominio</div>
+            <p style="font-size:12.5px; color:var(--text-secondary);">
+              El entorno móvil aporta sensores físicos y restricciones de energía que moldean la arquitectura:
+            </p>
+            <ul class="attr-list" style="margin-top:8px;">
+              <li><span class="attr-key">Regla Anti-Accidente (Shake)</span><span class="attr-val">Sacudir solo reinicia si isGameOver == true</span></li>
+              <li><span class="attr-key">Gestión Energética</span><span class="attr-val">AppLifecycleListener pausa acelerómetro</span></li>
+              <li><span class="attr-key">Feedback Multisensorial</span><span class="attr-val">HapticFeedback + Audio lowLatency</span></li>
+              <li><span class="attr-key">Operación 100% Offline</span><span class="attr-val">Sin dependencia de red</span></li>
+            </ul>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <!-- LATCH TABLE -->
+    <article class="ia-node">
+      <div class="node-top-stripe stripe-widget"></div>
+      <div class="node-header">
+        <div>
+          <span class="node-code">TEOREMA LATCH (RICHARD SAUL WURMAN, 1989)</span>
+          <div class="node-title">Las 5 Dimensiones de Organización de la Información en Flutter Peg Solitaire</div>
+        </div>
+        <span class="node-pattern-badge">Taxonomía Aplicada</span>
+      </div>
+      <div class="node-body">
+        <table class="latch-table">
+          <thead>
+            <tr>
+              <th>Dimensión LATCH</th>
+              <th>Aplicación en Flutter Peg Solitaire</th>
+              <th>Artefacto / Clase Responsable</th>
+              <th>Impacto en Usabilidad</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>L — Location (Ubicación)</strong></td>
+              <td>Coordenadas espaciales bidimensionales <code>(row, col)</code> dentro de la cruz inglesa de 7×7.</td>
+              <td><code>BoardPosition(row, col)</code> • <code>GridView.builder</code></td>
+              <td>Permite validar adyacencia ortogonal (distancia exacta de 2 celdas) y ubicar la celda central <code>(3,3)</code>.</td>
+            </tr>
+            <tr>
+              <td><strong>A — Alphabet (Alfabeto)</strong></td>
+              <td>No prioritario en UI de usuario final; utilizado internamente en claves JSON y diccionario de preferencias.</td>
+              <td><code>GameRecord.toJson()</code> • <code>PreferencesService</code></td>
+              <td>Estandarización predecible de llaves de serialización (<code>durationSeconds</code>, <code>isVictory</code>, <code>remainingPegs</code>).</td>
+            </tr>
+            <tr>
+              <td><strong>T — Time (Tiempo)</strong></td>
+              <td>Ordenamiento cronológico inverso de partidas finalizadas (<code>insert(0, record)</code>) y marcas de tiempo por jugada.</td>
+              <td><code>HistoryScreen</code> • <code>MoveRecord.timestamp</code></td>
+              <td>El jugador visualiza inmediatamente su partida más reciente al abrir el historial, junto con la duración en minutos y segundos.</td>
+            </tr>
+            <tr>
+              <td><strong>C — Category (Categoría)</strong></td>
+              <td>Clasificación tripartita de celdas (<code>voidCell</code>, <code>emptyHole</code>, <code>occupiedPeg</code>) y estado binario de partida (Victoria vs. Finalizado).</td>
+              <td><code>enum CellType</code> • <code>GameRecord.isVictory</code></td>
+              <td>Diferenciación cromática e iconográfica instantánea (Trofeo verde para victoria vs. Reloj rojo para bloqueo).</td>
+            </tr>
+            <tr>
+              <td><strong>H — Hierarchy (Jerarquía / Magnitud)</strong></td>
+              <td>Magnitud de desempeño medida por <code>remainingPegs</code> (óptimo = 1) y <code>totalMoves</code>, además del récord en <code>best_remaining_pegs</code>.</td>
+              <td><code>PegSolitaireViewModel</code> • <code>_buildScoreBoard</code></td>
+              <td>Orienta progresivamente al jugador hacia el estado meta de reducir las 32 fichas iniciales a exactamente 1.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </article>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       VIEW 03: MÁQUINA DE ESTADOS FINITOS (FSM) Y SENSORES
+  ════════════════════════════════════════════════════════════════════════ -->
+  <section id="view-fsm" class="view-section">
+    <div class="tier-label-bar">
+      <span class="tier-tag">COMPORTAMIENTO DINÁMICO // FSM &amp; HARDWARE</span>
+      <span class="tier-title">Ciclo de Vida de Interacción Táctil, Validación Ortogonal y Reinicio Físico por Acelerómetro</span>
+      <div class="tier-line"></div>
+    </div>
+
+    <article class="ia-node" style="margin-bottom: 24px;">
+      <div class="node-top-stripe stripe-state"></div>
+      <div class="node-header">
+        <div>
+          <span class="node-code">FSM // PegSolitaireViewModel</span>
+          <div class="node-title">Flujo Determinista de Estados ante Eventos Táctiles (onCellTapped)</div>
+        </div>
+        <span class="node-pattern-badge">Latencia &lt; 100ms (RNF-02)</span>
+      </div>
+      <div class="node-body">
+        <div class="fsm-pipeline">
+          <div class="fsm-step">
+            <h4>ESTADO 01: IDLE</h4>
+            <p><code>selectedPosition == null</code>. Tablero en espera. Al pulsar una celda con <code>occupiedPeg</code>, reproduce <code>playSelection()</code> y transiciona a <strong>SOURCE_SELECTED</strong>.</p>
+          </div>
+          <div class="fsm-step">
+            <h4>ESTADO 02: SOURCE_SELECTED</h4>
+            <p>La ficha origen brilla con borde ámbar (<code>isSelected: true</code>). Si el usuario pulsa la misma ficha, se cancela la selección y regresa a <strong>IDLE</strong>.</p>
+          </div>
+          <div class="fsm-step">
+            <h4>ESTADO 03: VALIDACIÓN ORTOGONAL</h4>
+            <p>Al pulsar un <code>emptyHole</code> en <code>to</code>, <code>_isValidMove(from, to)</code> verifica: <code>(Δrow == 2 &amp;&amp; Δcol == 0) || (Δrow == 0 &amp;&amp; Δcol == 2)</code> y que la celda intermedia sea <code>occupiedPeg</code>.</p>
+          </div>
+          <div class="fsm-step">
+            <h4>ESTADO 04: EJECUCIÓN ATÓMICA</h4>
+            <p><code>_executeMove</code> vacía <code>from</code> y <code>middle</code>, ocupa <code>to</code>, decrementa <code>remainingPegs</code>, incrementa <code>moveCount</code>, agrega <code>MoveRecord</code> y dispara <code>playJump()</code>.</p>
+          </div>
+          <div class="fsm-step">
+            <h4>ESTADO 05: EVALUACIÓN TERMINAL</h4>
+            <p><code>_evaluateGameTermination()</code> escanea las 4 direcciones. Si no quedan saltos válidos, activa <code>isGameOver = true</code>, evalúa <code>isVictory (pegs == 1)</code> y persiste en JSON.</p>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <div class="grid-2-cols">
+      <article class="ia-node">
+        <div class="node-top-stripe stripe-sensor"></div>
+        <div class="node-header">
+          <div>
+            <span class="node-code">PIPELINE DE HARDWARE // ACELERÓMETRO</span>
+            <div class="node-title">Flujo de Reinicio por Sacudida Física (ShakeDetectorService)</div>
+          </div>
+        </div>
+        <div class="node-body">
+          <ul class="attr-list">
+            <li><span class="attr-key">Paso 1: Captura</span><span class="attr-val">userAccelerometerEventStream() emite (x, y, z)</span></li>
+            <li><span class="attr-key">Paso 2: Norma Euclidiana</span><span class="attr-val">acceleration = sqrt(x² + y² + z²)</span></li>
+            <li><span class="attr-key">Paso 3: Filtro Umbral</span><span class="attr-val">acceleration &gt; 10.0 m/s²</span></li>
+            <li><span class="attr-key">Paso 4: Ventana Anti-Rebote</span><span class="attr-val">Δt &gt; 1200 ms desde última sacudida</span></li>
+            <li><span class="attr-key">Paso 5: Guardia de Dominio</span><span class="attr-val">if (viewModel.isGameOver) → initializeBoard()</span></li>
+            <li><span class="attr-key">Paso 6: Notificación Visual</span><span class="attr-val">SnackBar('¡Tablero reiniciado por movimiento físico!')</span></li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="ia-node">
+        <div class="node-top-stripe stripe-widget"></div>
+        <div class="node-header">
+          <div>
+            <span class="node-code">PIPELINE DE EXPORTACIÓN // SHARE SHEET</span>
+            <div class="node-title">Captura de Lienzo y Uso compartido en OS (ScreenshotService)</div>
+          </div>
+        </div>
+        <div class="node-body">
+          <ul class="attr-list">
+            <li><span class="attr-key">Paso 1: Envoltura de Render</span><span class="attr-val">RepaintBoundary(key: _boardBoundaryKey)</span></li>
+            <li><span class="attr-key">Paso 2: Rasterización</span><span class="attr-val">boundary.toImage(pixelRatio: 2.0)</span></li>
+            <li><span class="attr-key">Paso 3: Codificación Binaria</span><span class="attr-val">toByteData(format: ImageByteFormat.png)</span></li>
+            <li><span class="attr-key">Paso 4: Escritura Temporal</span><span class="attr-val">getTemporaryDirectory()/peg_solitaire_*.png</span></li>
+            <li><span class="attr-key">Paso 5: Intent del Sistema</span><span class="attr-val">SharePlus.instance.share(ShareParams(files, text))</span></li>
+          </ul>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       VIEW 04: DICCIONARIO DE DATOS Y ESQUEMA DE PERSISTENCIA
+  ════════════════════════════════════════════════════════════════════════ -->
+  <section id="view-schema" class="view-section">
+    <div class="tier-label-bar">
+      <span class="tier-tag">MODELO DE DATOS // ESQUEMAS Y CONTRATOS</span>
+      <span class="tier-title">Entidades Inmutables, Serialización JSON y Diccionario Clave-Valor</span>
+      <div class="tier-line"></div>
+    </div>
+
+    <div class="grid-2-cols">
+      <article class="ia-node">
+        <div class="node-top-stripe stripe-data"></div>
+        <div class="node-header">
+          <div>
+            <span class="node-code">ENTIDAD 01 // GameRecord</span>
+            <div class="node-title">Registro de Partida Concluida (lib/models/game_record.dart)</div>
+          </div>
+          <span class="node-pattern-badge">@immutable</span>
+        </div>
+        <div class="node-body">
+          <table class="latch-table">
+            <thead>
+              <tr>
+                <th>Campo</th>
+                <th>Tipo Dart</th>
+                <th>Llave JSON</th>
+                <th>Descripción Semántica</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>id</code></td>
+                <td><code>String</code></td>
+                <td><code>"id"</code></td>
+                <td>Identificador único generado por <code>microsecondsSinceEpoch</code>.</td>
+              </tr>
+              <tr>
+                <td><code>date</code></td>
+                <td><code>DateTime</code></td>
+                <td><code>"date"</code></td>
+                <td>Fecha y hora ISO-8601 de finalización de la partida.</td>
+              </tr>
+              <tr>
+                <td><code>remainingPegs</code></td>
+                <td><code>int</code></td>
+                <td><code>"remainingPegs"</code></td>
+                <td>Cantidad de clavijas restantes en el tablero (1 = Victoria).</td>
+              </tr>
+              <tr>
+                <td><code>totalMoves</code></td>
+                <td><code>int</code></td>
+                <td><code>"totalMoves"</code></td>
+                <td>Total de saltos ortogonales ejecutados en la sesión.</td>
+              </tr>
+              <tr>
+                <td><code>durationSeconds</code></td>
+                <td><code>int</code></td>
+                <td><code>"durationSeconds"</code></td>
+                <td>Duración total medida desde el primer movimiento hasta el fin.</td>
+              </tr>
+              <tr>
+                <td><code>isVictory</code></td>
+                <td><code>bool</code></td>
+                <td><code>"isVictory"</code></td>
+                <td>Indicador booleano (<code>true</code> si <code>remainingPegs == 1</code>).</td>
+              </tr>
+              <tr>
+                <td><code>moves</code></td>
+                <td><code>List&lt;MoveRecord&gt;</code></td>
+                <td><code>"moves"</code></td>
+                <td>Secuencia cronológica completa de movimientos para auditoría/replay.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="ia-node">
+        <div class="node-top-stripe stripe-data"></div>
+        <div class="node-header">
+          <div>
+            <span class="node-code">ENTIDAD 02 // MoveRecord, BoardPosition &amp; CellType</span>
+            <div class="node-title">Primitivas Espaciales y Cinemáticas del Tablero</div>
+          </div>
+          <span class="node-pattern-badge">@immutable</span>
+        </div>
+        <div class="node-body">
+          <table class="latch-table">
+            <thead>
+              <tr>
+                <th>Modelo / Enum</th>
+                <th>Atributo / Valor</th>
+                <th>Tipo / Serialización</th>
+                <th>Rol en la Arquitectura</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>MoveRecord</code></td>
+                <td><code>from</code>, <code>to</code>, <code>timestamp</code></td>
+                <td><code>fromRow, fromCol, toRow, toCol, timestamp</code></td>
+                <td>Representa una acción cinemática atómica de salto ortogonal.</td>
+              </tr>
+              <tr>
+                <td><code>BoardPosition</code></td>
+                <td><code>row</code> (0..6), <code>col</code> (0..6)</td>
+                <td><code>int</code> (Sobrescribe <code>==</code> y <code>hashCode</code>)</td>
+                <td>Coordenada matricial inmutable en la grilla de 7×7.</td>
+              </tr>
+              <tr>
+                <td><code>CellType.voidCell</code></td>
+                <td>Índice 0</td>
+                <td>No renderizable (<code>SizedBox.shrink</code>)</td>
+                <td>Delimitación geométrica de las 4 esquinas inválidas de 2×2 (16 celdas).</td>
+              </tr>
+              <tr>
+                <td><code>CellType.emptyHole</code></td>
+                <td>Índice 1</td>
+                <td>Receptor táctil de destino</td>
+                <td>Cavidad desocupada; inicia en <code>(3,3)</code> y recibe saltos válidos.</td>
+              </tr>
+              <tr>
+                <td><code>CellType.occupiedPeg</code></td>
+                <td>Índice 2</td>
+                <td>Emisor táctil de selección</td>
+                <td>Clavija activa en el tablero (32 al inicio de la partida).</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       FOOTER
+  ════════════════════════════════════════════════════════════════════════ -->
+  <footer class="ia-footer">
+    <div>
+      <strong>FLUTTER PEG SOLITAIRE</strong> • Artefacto de Arquitectura de Información (IA) • Inspirado en Industrial Analytics IA Blueprint
+    </div>
+    <div>
+      Curso: Diseño y Construcción de Aplicaciones Móviles (3479A321) • Universidad de Talca • 2026
+    </div>
+  </footer>
+
+  <script>
+    function switchView(viewId, btn) {
+      document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById(viewId).classList.add('active');
+      btn.classList.add('active');
+    }
+
+    function filterLayer(layer, pillElement) {
+      document.querySelectorAll('.legend-pill').forEach(el => el.classList.remove('active-filter'));
+      pillElement.classList.add('active-filter');
+
+      const nodes = document.querySelectorAll('#view-blueprint .ia-node');
+      nodes.forEach(node => {
+        if (layer === 'all' || node.dataset.layer === layer) {
+          node.classList.remove('dimmed');
+        } else {
+          node.classList.add('dimmed');
+        }
+      });
+    }
+
+    function toggleTheme() {
+      document.body.classList.toggle('light-mode');
+      const btn = document.getElementById('themeToggleBtn');
+      if (document.body.classList.contains('light-mode')) {
+        btn.textContent = '🌙 Modo Blueprint Oscuro';
+      } else {
+        btn.textContent = '☀️ Modo Claro';
+      }
+    }
+  </script>
+</body>
+</html>
