@@ -1,4 +1,6 @@
 // lib/viewmodels/peg_solitaire_viewmodel.dart
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_pegsolitaire/models/board_position.dart';
 import 'package:flutter_pegsolitaire/models/game_record.dart';
@@ -13,6 +15,16 @@ import '../core/enums/cell_type.dart';
 
 /// ViewModel que encapsula las reglas de negocio, la FSM y el estado del Peg Solitaire.
 class PegSolitaireViewModel extends ChangeNotifier {
+
+  //Timer
+  Timer? _gameTimer;
+  int _secondsElapsed = 0;
+  bool _isTimerRunning = false;
+
+  int get secondsElapsed => _secondsElapsed;
+
+
+
   static const int gridSize = 7;
   final Logger _logger = Logger();
 
@@ -35,10 +47,44 @@ class PegSolitaireViewModel extends ChangeNotifier {
   ShakeDetectorService? _shakeDetector;
   
   
+  String get formattedTime {
+    final minutes = (_secondsElapsed ~/ 60).toString().padLeft(2, '0');
+    final seconds = (_secondsElapsed % 60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
+  }
+
+  void _startTimer() {
+    if (_isTimerRunning) return;
+    _isTimerRunning = true;
+    _gameTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!_isGameOver) {
+        _secondsElapsed++;
+        notifyListeners(); // Notifica la mutación temporal
+      }
+    });
+  }
+
+  void pauseTimer() {
+    _gameTimer?.cancel();
+    _isTimerRunning = false;
+  }
+
+  void resumeTimer() {
+    if (!_isGameOver && _moveCount > 0) {
+      _startTimer();
+    }
+  }
+
+  void _stopAndResetTimer() {
+    _gameTimer?.cancel();
+    _isTimerRunning = false;
+    _secondsElapsed = 0;
+  }
 
 
   @override
   void dispose() {
+    _gameTimer?.cancel();
     _shakeDetector?.dispose(); // 4. Evitar fugas de memoria al salir
     super.dispose();
   }
@@ -80,6 +126,7 @@ class PegSolitaireViewModel extends ChangeNotifier {
     _moveCount = 0;
     _isGameOver = false;
     _isVictory = false;
+    _stopAndResetTimer();
 
     notifyListeners();
   }
@@ -103,6 +150,11 @@ class PegSolitaireViewModel extends ChangeNotifier {
     if (_isGameOver) {
       return;
     }
+
+    if (_moveCount == 1 && !_isTimerRunning) {
+     _startTimer();
+    }
+
 
     final CellType tappedType = _board[pos.row][pos.col];
     if (tappedType == CellType.voidCell) return;
@@ -235,6 +287,7 @@ class PegSolitaireViewModel extends ChangeNotifier {
     }
 
     if (_isGameOver == true) {
+      pauseTimer();
       _persistCompletedGame();
     }
   }

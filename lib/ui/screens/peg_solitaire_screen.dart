@@ -67,6 +67,7 @@ class _PegSolitaireScreenState extends State<PegSolitaireScreen> {
         children: [
           _buildMetric(context, 'Piezas', '${vm.remainingPegs}', Icons.circle),
           _buildMetric(context, 'Movimientos', '${vm.moveCount}', Icons.swap_horiz_rounded),
+          _buildMetric(context, 'Tiempo', vm.formattedTime, Icons.timer_outlined),
         ],
       ),
     );
