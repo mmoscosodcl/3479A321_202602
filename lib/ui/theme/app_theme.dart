@@ -28,4 +28,29 @@ class AppTheme {
       ),
     );
   }
+
+  static ThemeData get darkTheme {
+    return ThemeData(
+      useMaterial3: true,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: primarySeed,
+        brightness: Brightness.dark,
+        surface: const Color(0xFF1E1B18),
+        surfaceContainerHighest: const Color(0xFF2C2825),
+      ),
+      scaffoldBackgroundColor: const Color(0xFF141210),
+      appBarTheme: const AppBarTheme(
+        centerTitle: true,
+        elevation: 0,
+        backgroundColor: Color(0xFF1E1B18),
+        foregroundColor: Colors.white,
+        titleTextStyle: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+          fontFamily: 'TacoCrispy',
+          letterSpacing: 1.1,
+        ),
+      ),
+    );
+  }
 }

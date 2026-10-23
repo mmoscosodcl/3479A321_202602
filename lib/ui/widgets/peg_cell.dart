@@ -26,6 +26,14 @@ class PegCell extends StatelessWidget {
     }
 
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final cellBaseColor = isDark ? const Color(0xFF2A2622) : const Color(0xFFD7CCC8);
+    final borderColor = isSelected
+        ? Colors.amberAccent
+        : isTargetHint
+            ? (isDark ? Colors.tealAccent : Colors.teal)
+            : (isDark ? const Color(0xFF3E3832) : const Color(0xFFA1887F));
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -33,58 +41,97 @@ class PegCell extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         decoration: BoxDecoration(
-          color: isTargetHint ? Colors.amber.withValues(alpha: 0.25) : Colors.grey[400],
+          color: isTargetHint
+              ? (isDark ? Colors.teal.withValues(alpha: 0.3) : Colors.amber.withValues(alpha: 0.25))
+              : cellBaseColor,
           shape: BoxShape.circle,
           border: Border.all(
-            color: isSelected
-                ? Colors.amberAccent
-                : isTargetHint
-                    ? Colors.teal
-                    : Colors.grey[600]!,
+            color: borderColor,
             width: isSelected || isTargetHint ? 3.0 : 1.5,
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: Colors.amber.withValues(alpha: 0.6),
-                    blurRadius: 6,
+                    color: Colors.amber.withValues(alpha: 0.7),
+                    blurRadius: 8,
                     spreadRadius: 2,
                   )
                 ]
               : isTargetHint
                   ? [
                       BoxShadow(
-                        color: Colors.teal.withValues(alpha: 0.5),
-                        blurRadius: 5,
+                        color: (isDark ? Colors.tealAccent : Colors.teal).withValues(alpha: 0.5),
+                        blurRadius: 6,
                         spreadRadius: 1,
                       )
                     ]
-                  : null,
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
+                        blurRadius: 3,
+                        offset: const Offset(0, 1.5),
+                      ),
+                    ],
         ),
         child: Center(
-          child: _buildPieceContent(theme),
+          child: _buildPieceContent(theme, isDark),
         ),
       ),
     );
   }
 
-  Widget _buildPieceContent(ThemeData theme) {
+  Widget _buildPieceContent(ThemeData theme, bool isDark) {
     if (cellType == CellType.occupiedPeg) {
       return Container(
-        width: 26,
-        height: 26,
+        width: 28,
+        height: 28,
         decoration: BoxDecoration(
-          color: theme.colorScheme.primary,
           shape: BoxShape.circle,
+          gradient: RadialGradient(
+            center: const Alignment(-0.3, -0.3),
+            radius: 0.85,
+            colors: isDark
+                ? [
+                    const Color(0xFF64B5F6),
+                    theme.colorScheme.primary,
+                    const Color(0xFF0D47A1),
+                  ]
+                : [
+                    const Color(0xFF42A5F5),
+                    theme.colorScheme.primary,
+                    const Color(0xFF0D47A1),
+                  ],
+            stops: const [0.0, 0.55, 1.0],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.4),
+              blurRadius: 4,
+              offset: const Offset(1, 2),
+            ),
+          ],
         ),
       );
     } else if (cellType == CellType.emptyHole) {
       return Container(
-        width: 12,
-        height: 12,
+        width: 14,
+        height: 14,
         decoration: BoxDecoration(
-          color: Colors.grey[800],
           shape: BoxShape.circle,
+          gradient: RadialGradient(
+            center: Alignment.center,
+            radius: 0.8,
+            colors: isDark
+                ? [const Color(0xFF0A0908), const Color(0xFF1E1B18)]
+                : [const Color(0xFF2E241E), const Color(0xFF4E342E)],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.white.withValues(alpha: isDark ? 0.05 : 0.15),
+              blurRadius: 1,
+              offset: const Offset(0, 1),
+            ),
+          ],
         ),
       );
     }

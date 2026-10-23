@@ -58,37 +58,85 @@ class MenuScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Spacer(),
-              const SizedBox(height: 16),
+              Center(
+                child: Container(
+                  width: 90,
+                  height: 90,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const RadialGradient(
+                      center: Alignment(-0.3, -0.3),
+                      radius: 0.85,
+                      colors: [
+                        Color(0xFF64B5F6),
+                        Color(0xFF1565C0),
+                        Color(0xFF0D47A1),
+                      ],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.4),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.extension_rounded,
+                      size: 46,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
               Text(
                 'PEG SOLITAIRE',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.headlineMedium?.copyWith(
+                  fontFamily: 'TacoCrispy',
                   fontWeight: FontWeight.bold,
-                  letterSpacing: 1.5,
+                  letterSpacing: 2.0,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Solitario Inglés Tradicional',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                  letterSpacing: 0.5,
                 ),
               ),
               const Spacer(),
               if (hasActiveGame) ...[
-                  FilledButton.icon(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: Colors.teal,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                    ),
-                    icon: const Icon(Icons.play_arrow_rounded),
-                    label: const Text('Continuar Partida Activa'),
-                    onPressed: () {
-                      final snapshot = prefs.activeGameSnapshot;
-                      if (snapshot != null) {
-                        final vm = context.read<PegSolitaireViewModel>();
-                        vm.restoreFromSnapshot(snapshot);
-                        Navigator.pushNamed(context, '/game');
-                      }
-                    },
+                FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.teal,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
-                  const SizedBox(height: 12),
-                ],
+                  icon: const Icon(Icons.play_arrow_rounded),
+                  label: const Text('CONTINUAR PARTIDA'),
+                  onPressed: () {
+                    final snapshot = prefs.activeGameSnapshot;
+                    if (snapshot != null) {
+                      final vm = context.read<PegSolitaireViewModel>();
+                      vm.restoreFromSnapshot(snapshot);
+                      Navigator.pushNamed(context, '/game');
+                    }
+                  },
+                ),
+                const SizedBox(height: 12),
+              ],
               FilledButton.icon(
-                icon: const Icon(Icons.play_arrow_rounded),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                icon: const Icon(Icons.play_circle_outline_rounded),
                 label: const Text('NUEVA PARTIDA'),
                 onPressed: () {
                   Navigator.pushNamed(context, '/game');
@@ -96,12 +144,20 @@ class MenuScreen extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
                 icon: const Icon(Icons.history_rounded),
                 label: const Text('HISTORIAL DE PARTIDAS'),
                 onPressed: () => Navigator.pushNamed(context, '/history'),
               ),
               const SizedBox(height: 12),
               OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
                 icon: const Icon(Icons.settings_outlined),
                 label: const Text('CONFIGURACIÓN'),
                 onPressed: () => Navigator.pushNamed(context, '/settings'),

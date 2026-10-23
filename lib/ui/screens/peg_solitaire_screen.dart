@@ -306,33 +306,54 @@ class _PegSolitaireScreenState extends State<PegSolitaireScreen> {
   }
 
   Widget _gameBoard(BuildContext context, PegSolitaireViewModel vm) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(8.0),
+        padding: const EdgeInsets.all(12.0),
         child: AspectRatio(
           aspectRatio: 1.0,
-          child: GridView.builder(
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: PegSolitaireViewModel.gridSize,
-              crossAxisSpacing: 2.0,
-              mainAxisSpacing: 2.0,
+          child: Container(
+            padding: const EdgeInsets.all(10.0),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E1B18) : const Color(0xFFEFEBE9),
+              borderRadius: BorderRadius.circular(24.0),
+              border: Border.all(
+                color: isDark ? const Color(0xFF3E3832) : const Color(0xFFD7CCC8),
+                width: 3.0,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-            itemCount: PegSolitaireViewModel.gridSize * PegSolitaireViewModel.gridSize,
-            itemBuilder: (context, index) {
-              final int row = index ~/ PegSolitaireViewModel.gridSize;
-              final int col = index % PegSolitaireViewModel.gridSize;
-              final position = BoardPosition(row, col);
-              final CellType cellType = vm.getCellType(position);
+            child: GridView.builder(
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: PegSolitaireViewModel.gridSize,
+                crossAxisSpacing: 3.0,
+                mainAxisSpacing: 3.0,
+              ),
+              itemCount: PegSolitaireViewModel.gridSize * PegSolitaireViewModel.gridSize,
+              itemBuilder: (context, index) {
+                final int row = index ~/ PegSolitaireViewModel.gridSize;
+                final int col = index % PegSolitaireViewModel.gridSize;
+                final position = BoardPosition(row, col);
+                final CellType cellType = vm.getCellType(position);
 
-              return PegCell(
-                position: position,
-                cellType: cellType,
-                isSelected: vm.isCellSelected(position),
-                isTargetHint: vm.isTargetHint(position),
-                onTap: () => _handleCellTapped(context, position, vm),
-              );
-            },
+                return PegCell(
+                  position: position,
+                  cellType: cellType,
+                  isSelected: vm.isCellSelected(position),
+                  isTargetHint: vm.isTargetHint(position),
+                  onTap: () => _handleCellTapped(context, position, vm),
+                );
+              },
+            ),
           ),
         ),
       ),

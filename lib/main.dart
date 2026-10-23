@@ -30,7 +30,7 @@ Future<void> main() async {
       providers: [
         // Inyección por interfaz abstracta (DIP)
         Provider<IGameHistoryRepository>.value(value: historyRepository),
-        Provider<PreferencesService>.value(value: preferencesService),
+        ChangeNotifierProvider<PreferencesService>.value(value: preferencesService),
         Provider<AudioService>.value(value: audioService),
       ],
       child: const MyApp(),
@@ -43,9 +43,18 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
    @override
  Widget build(BuildContext context) {
+   final prefs = context.watch<PreferencesService>();
+   final themeMode = switch (prefs.themeModeName) {
+     'light' => ThemeMode.light,
+     'dark' => ThemeMode.dark,
+     _ => ThemeMode.system,
+   };
+
    return MaterialApp(
      title: 'Solitario Ingles',
      theme: AppTheme.lightTheme,
+     darkTheme: AppTheme.darkTheme,
+     themeMode: themeMode,
      initialRoute: '/',
       routes: {
         '/': (context) => const MenuScreen(),
