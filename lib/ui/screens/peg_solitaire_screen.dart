@@ -329,6 +329,7 @@ class _PegSolitaireScreenState extends State<PegSolitaireScreen> {
                 position: position,
                 cellType: cellType,
                 isSelected: vm.isCellSelected(position),
+                isTargetHint: vm.isTargetHint(position),
                 onTap: () => _handleCellTapped(context, position, vm),
               );
             },
@@ -387,6 +388,19 @@ class _PegSolitaireScreenState extends State<PegSolitaireScreen> {
         appBar: AppBar(
           title: const Text('Solitario'),
           actions: [
+            IconButton(
+              icon: const Icon(Icons.undo_rounded),
+              tooltip: 'Deshacer movimiento',
+              onPressed: vm.canUndo
+                  ? () {
+                      final prefs = context.read<PreferencesService>();
+                      if (prefs.isVibrationEnabled) {
+                        HapticFeedback.lightImpact();
+                      }
+                      vm.undoLastMove();
+                    }
+                  : null,
+            ),
             IconButton(
               icon: const Icon(Icons.help_outline),
               tooltip: 'Reglas del juego',

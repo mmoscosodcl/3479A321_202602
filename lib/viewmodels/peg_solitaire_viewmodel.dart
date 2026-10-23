@@ -109,6 +109,66 @@ class PegSolitaireViewModel extends ChangeNotifier {
   int get moveCount => _moveCount;
   bool get isGameOver => _isGameOver;
   bool get isVictory => _isVictory;
+  bool get canUndo => _movesHistory.isNotEmpty && !_isGameOver;
+
+  /// Retorna las posiciones destino válidas para una posición origen seleccionada
+  List<BoardPosition> get validDestinations {
+    if (_selectedPosition == null) return const [];
+    return getValidDestinationsFor(_selectedPosition!);
+  }
+
+  bool isTargetHint(BoardPosition pos) {
+    if (_selectedPosition == null) return false;
+    return validDestinations.contains(pos);
+  }
+
+  List<BoardPosition> getValidDestinationsFor(BoardPosition origin) {
+    if (_board[origin.row][origin.col] != CellType.occupiedPeg) return const [];
+
+    final List<BoardPosition> targets = [];
+    const deltas = [
+      [-2, 0],
+      [2, 0],
+      [0, -2],
+      [0, 2],
+    ];
+
+    for (final delta in deltas) {
+      final targetRow = origin.row + delta[0];
+      final targetCol = origin.col + delta[1];
+      if (targetRow >= 0 && targetRow < gridSize && targetCol >= 0 && targetCol < gridSize) {
+        final target = BoardPosition(targetRow, targetCol);
+        if (_isValidMove(origin, target)) {
+          targets.add(target);
+        }
+      }
+    }
+    return targets;
+  }
+
+  /// Revierte el último salto ortogonal efectuado restaurando la clavija saltada y la posición previa
+  void undoLastMove() {
+    if (!canUndo) return;
+
+    final MoveRecord lastMove = _movesHistory.removeLast();
+    final int midRow = (lastMove.from.row + lastMove.to.row) ~/ 2;
+    final int midCol = (lastMove.from.col + lastMove.to.col) ~/ 2;
+
+    _board[lastMove.from.row][lastMove.from.col] = CellType.occupiedPeg;
+    _board[midRow][midCol] = CellType.occupiedPeg;
+    _board[lastMove.to.row][lastMove.to.col] = CellType.emptyHole;
+
+    _remainingPegs++;
+    _moveCount--;
+    _selectedPosition = null;
+
+    if (_moveCount == 0) {
+      _stopAndResetTimer();
+    }
+
+    _logger.i('Movimiento revertido: ${lastMove.to} -> ${lastMove.from} | Clavijas: $_remainingPegs');
+    notifyListeners();
+  }
 
   PegSolitaireViewModel({
     required IGameHistoryRepository this._historyRepository,
@@ -312,7 +372,7 @@ class PegSolitaireViewModel extends ChangeNotifier {
       date: DateTime.now(),
       remainingPegs: _remainingPegs,
       totalMoves: _moveCount,
-      durationSeconds: 0, // Se integrará con el cronómetro de sesión
+      durationSeconds: _secondsElapsed,
       isVictory: _isVictory,
       moves: List.unmodifiable(_movesHistory),
     );

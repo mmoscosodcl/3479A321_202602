@@ -7,6 +7,7 @@ class PegCell extends StatelessWidget {
   final BoardPosition position;
   final CellType cellType;
   final bool isSelected;
+  final bool isTargetHint;
   final VoidCallback? onTap;
 
   const PegCell({
@@ -14,16 +15,15 @@ class PegCell extends StatelessWidget {
     required this.position,
     required this.cellType,
     this.isSelected = false,
+    this.isTargetHint = false,
     this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-
     if (cellType == CellType.voidCell) {
       return const SizedBox.shrink();
     }
-
 
     final theme = Theme.of(context);
 
@@ -33,11 +33,15 @@ class PegCell extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         decoration: BoxDecoration(
-          color: Colors.grey[400],
+          color: isTargetHint ? Colors.amber.withValues(alpha: 0.25) : Colors.grey[400],
           shape: BoxShape.circle,
           border: Border.all(
-            color: isSelected ? Colors.amberAccent : Colors.grey[600]!,
-            width: isSelected ? 3.0 : 1.5,
+            color: isSelected
+                ? Colors.amberAccent
+                : isTargetHint
+                    ? Colors.teal
+                    : Colors.grey[600]!,
+            width: isSelected || isTargetHint ? 3.0 : 1.5,
           ),
           boxShadow: isSelected
               ? [
@@ -47,7 +51,15 @@ class PegCell extends StatelessWidget {
                     spreadRadius: 2,
                   )
                 ]
-              : null,
+              : isTargetHint
+                  ? [
+                      BoxShadow(
+                        color: Colors.teal.withValues(alpha: 0.5),
+                        blurRadius: 5,
+                        spreadRadius: 1,
+                      )
+                    ]
+                  : null,
         ),
         child: Center(
           child: _buildPieceContent(theme),
