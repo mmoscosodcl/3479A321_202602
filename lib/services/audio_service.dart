@@ -26,8 +26,10 @@ class AudioService {
     }
   }
 
+  bool isSoundEnabled = true;
+
   Future<void> playSelect() async {
-    if (!_isInitialized) return;
+    if (!_isInitialized || !isSoundEnabled) return;
     try {
       await _player.play(AssetSource('audios/selection.mp3'));
     } catch (e) {
@@ -36,7 +38,7 @@ class AudioService {
   }
 
   Future<void> playJump() async {
-    if (!_isInitialized) return;
+    if (!_isInitialized || !isSoundEnabled) return;
     try {
       await _player.play(AssetSource('audios/jump.mp3'));
       AppLogger.info('Reproduciendo jump.mp3 con éxito');
@@ -46,7 +48,7 @@ class AudioService {
   }
 
   Future<void> playGameOver() async {
-    if (!_isInitialized) return;
+    if (!_isInitialized || !isSoundEnabled) return;
     try {
       await _player.play(AssetSource('audios/defeat.mp3'));
     } catch (e) {

@@ -1,7 +1,9 @@
 // lib/viewmodels/peg_solitaire_viewmodel.dart
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter_pegsolitaire/core/utils/app_logger.dart';
 import 'package:flutter_pegsolitaire/models/board_position.dart';
 import 'package:flutter_pegsolitaire/models/game_record.dart';
 import 'package:flutter_pegsolitaire/models/move_record.dart';
@@ -22,6 +24,17 @@ class PegSolitaireViewModel extends ChangeNotifier {
   bool _isTimerRunning = false;
 
   int get secondsElapsed => _secondsElapsed;
+
+
+  String exportStateToJson() {
+    final Map<String, dynamic> snapshot = {
+      'remainingPegs': _remainingPegs,
+      'moveCount': _moveCount,
+      'secondsElapsed': _secondsElapsed,
+      'board': _board.map((row) => row.map((cell) => cell.index).toList()).toList(),
+    };
+    return jsonEncode(snapshot);
+  }
 
 
 
@@ -127,8 +140,55 @@ class PegSolitaireViewModel extends ChangeNotifier {
     _isGameOver = false;
     _isVictory = false;
     _stopAndResetTimer();
+    clearActiveGame();
 
     notifyListeners();
+  }
+
+
+
+  /// Restaura atómicamente la matriz y contadores desde un snapshot JSON
+  bool restoreFromSnapshot(String jsonString) {
+    try {
+      final Map<String, dynamic> data = jsonDecode(jsonString) as Map<String, dynamic>;
+      _remainingPegs = data['remainingPegs'] as int;
+      _moveCount = data['moveCount'] as int;
+      _secondsElapsed = data['secondsElapsed'] as int;
+
+      final rawBoard = data['board'] as List<dynamic>;
+      _board = rawBoard.map((row) {
+        return (row as List<dynamic>).map((cellIdx) => CellType.values[cellIdx as int]).toList();
+      }).toList();
+
+      _selectedPosition = null;
+      _isGameOver = false;
+      _isVictory = false;
+
+      // Reanuda el cronómetro si la partida ya tenía movimientos
+      if (_moveCount > 0) {
+        _startTimer();
+      }
+      notifyListeners();
+      AppLogger.info('Partida activa restaurada con éxito desde snapshot local');
+      return true;
+    } catch (e, stack) {
+      AppLogger.error('Fallo al restaurar snapshot de partida activa', e, stack);
+      return false;
+    }
+  }
+
+  /// Guarda el snapshot si la partida está en curso y activa
+  Future<void> saveActiveGameIfApplicable() async {
+    if (_moveCount > 0 && !_isGameOver) {
+      final json = exportStateToJson();
+      await _preferencesService?.saveActiveGameSnapshot(json);
+      AppLogger.info('Snapshot de partida activa persistido preventivamente');
+    }
+  }
+
+  /// Purgado atómico de partidas finalizadas o reiniciadas
+  Future<void> clearActiveGame() async {
+    await _preferencesService?.clearActiveGameSnapshot();
   }
 
   /// Retorna el tipo de celda en una coordenada cartesiana segura.
@@ -274,7 +334,9 @@ class PegSolitaireViewModel extends ChangeNotifier {
       _isVictory = true;
       _audioService?.playGameOver(); // Reproducción de sonido de game over
       _logger.i('¡VICTORIA! Partida completada en $_moveCount movimientos.');
-
+      pauseTimer();
+      clearActiveGame();
+      _persistCompletedGame();
       return;
     }
 
@@ -288,6 +350,7 @@ class PegSolitaireViewModel extends ChangeNotifier {
 
     if (_isGameOver == true) {
       pauseTimer();
+      clearActiveGame();
       _persistCompletedGame();
     }
   }

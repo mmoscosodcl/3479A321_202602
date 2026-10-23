@@ -7,6 +7,7 @@ import 'package:flutter_pegsolitaire/ui/screens/history_screen.dart';
 import 'package:flutter_pegsolitaire/ui/screens/menu_screen.dart';
 import 'package:flutter_pegsolitaire/ui/screens/peg_solitaire_screen.dart';
 import 'package:flutter_pegsolitaire/ui/screens/rules_screen.dart';
+import 'package:flutter_pegsolitaire/ui/screens/settings_screen.dart';
 import 'package:flutter_pegsolitaire/ui/theme/app_theme.dart';
 import 'package:provider/provider.dart';
 import 'viewmodels/peg_solitaire_viewmodel.dart';
@@ -20,6 +21,7 @@ Future<void> main() async {
   final preferencesService = await PreferencesService.create();
   final historyRepository = JsonFileHistoryRepository();
   final audioService = AudioService.instance; // Inicialización del servicio de audio
+  audioService.isSoundEnabled = preferencesService.isSoundEnabled;
 
 
 // 3. Inyectar dependencias en la raíz del árbol
@@ -56,6 +58,7 @@ class MyApp extends StatelessWidget {
             ),
         '/history': (context) => const HistoryScreen(),
         '/rules': (context) => const RulesScreen(),
+        '/settings': (context) => const SettingsScreen(),
       },
    );
  }
