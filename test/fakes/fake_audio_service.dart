@@ -3,6 +3,9 @@ import 'package:flutter_pegsolitaire/services/audio_service.dart';
 
 /// Doble de prueba en memoria que neutraliza los canales nativos de audio.
 class FakeAudioService implements AudioService {
+  @override
+  bool isSoundEnabled = true;
+
   int playSelectCount = 0;
   int playJumpCount = 0;
   int playGameOverCount = 0;

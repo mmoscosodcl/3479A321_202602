@@ -19,10 +19,23 @@ class PegCell extends StatelessWidget {
     this.onTap,
   });
 
+  String _buildSemanticLabel() {
+    final row = position.row + 1;
+    final col = position.col + 1;
+    final typeDesc = cellType == CellType.occupiedPeg ? 'Clavija ocupada' : 'Hueco vacío';
+    if (isSelected) {
+      return 'Fila $row, Columna $col, $typeDesc. Seleccionada actualmente. Toca para deseleccionar.';
+    }
+    if (isTargetHint) {
+      return 'Fila $row, Columna $col, $typeDesc. Destino válido para saltar. Toca para mover la clavija aquí.';
+    }
+    return 'Fila $row, Columna $col, $typeDesc.';
+  }
+
   @override
   Widget build(BuildContext context) {
     if (cellType == CellType.voidCell) {
-      return const SizedBox.shrink();
+      return const ExcludeSemantics(child: SizedBox.shrink());
     }
 
     final theme = Theme.of(context);
@@ -35,10 +48,15 @@ class PegCell extends StatelessWidget {
             ? (isDark ? Colors.tealAccent : Colors.teal)
             : (isDark ? const Color(0xFF3E3832) : const Color(0xFFA1887F));
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: AnimatedContainer(
+    return Semantics(
+      label: _buildSemanticLabel(),
+      button: true,
+      enabled: cellType != CellType.voidCell,
+      selected: isSelected,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         decoration: BoxDecoration(
           color: isTargetHint
@@ -77,7 +95,7 @@ class PegCell extends StatelessWidget {
           child: _buildPieceContent(theme, isDark),
         ),
       ),
-    );
+    ),);
   }
 
   Widget _buildPieceContent(ThemeData theme, bool isDark) {

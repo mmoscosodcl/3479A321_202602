@@ -105,8 +105,13 @@ String _monthName(int month) {
   }
 }
 
-Widget _buildRecordCard(BuildContext context, GameRecord record) {
+  Widget _buildRecordCard(BuildContext context, GameRecord record) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final victoryColor = isDark ? const Color(0xFF81C784) : const Color(0xFF2E7D32);
+    final defeatColor = isDark ? const Color(0xFFE57373) : const Color(0xFFC62828);
+    final statusColor = record.isVictory ? victoryColor : defeatColor;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12.0),
       child: ListTile(
@@ -115,33 +120,31 @@ Widget _buildRecordCard(BuildContext context, GameRecord record) {
           vertical: 8.0,
         ),
         leading: Icon(
-          record.isVictory
-              ? Icons.check_circle
-              : Icons.cancel,
-          color: theme.colorScheme.primary,
+          record.isVictory ? Icons.check_circle_rounded : Icons.cancel_rounded,
+          color: statusColor,
           size: 32,
         ),
         title: Row(
           children: [
             Text(
               record.isVictory ? 'Victoria' : 'Derrota',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: Colors.amber,
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: statusColor,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const Spacer(),
             Text(
-              '${record.date}',
-              style: Theme.of(context).textTheme.bodySmall,
+              formatDate(record.date),
+              style: theme.textTheme.bodySmall,
             ),
           ],
         ),
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 8.0),
           child: Text(
-            '${record.durationSeconds} · Movimientos: ${record.totalMoves} · Clavijas restantes: ${record.remainingPegs}',
-            style: Theme.of(context).textTheme.bodyMedium,
+            '${formatDuration(record.durationSeconds)} · Movimientos: ${record.totalMoves} · Clavijas restantes: ${record.remainingPegs}',
+            style: theme.textTheme.bodyMedium,
           ),
         ),
       ),
